@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:enefty_icons/enefty_icons.dart';
-import 'package:mart24/core/network/api_exception.dart';
-import 'package:mart24/core/routes/app_routes.dart';
-import 'package:mart24/core/state/session_manager.dart';
-import 'package:mart24/core/storage/app_storage.dart';
-import 'package:mart24/features/auth/models/auth_switch_result.dart';
-import 'package:mart24/features/auth/screens/register_screen.dart';
-import 'package:mart24/features/auth/screens/phone_number_auth_screen.dart';
-import 'package:mart24/features/auth/services/api/auth_api_service.dart';
-import 'package:mart24/features/auth/services/auth_service.dart';
-import 'package:mart24/features/auth/services/social_auth_service.dart';
-import 'package:mart24/features/auth/widgets/auth_background.dart';
-import 'package:mart24/features/auth/widgets/auth_social_buttons.dart';
-import 'package:mart24/features/auth/widgets/auth_submit_button.dart';
-import 'package:mart24/features/auth/widgets/auth_text_field.dart';
-import 'package:mart24/features/auth/widgets/auth_toggle.dart';
+import 'package:EMART24/core/network/api_exception.dart';
+import 'package:EMART24/core/routes/app_routes.dart';
+import 'package:EMART24/core/state/session_manager.dart';
+import 'package:EMART24/core/storage/app_storage.dart';
+import 'package:EMART24/features/auth/models/auth_switch_result.dart';
+import 'package:EMART24/features/auth/screens/register_screen.dart';
+import 'package:EMART24/features/auth/screens/phone_number_auth_screen.dart';
+import 'package:EMART24/features/auth/services/api/auth_api_service.dart';
+import 'package:EMART24/features/auth/services/auth_service.dart';
+import 'package:EMART24/features/auth/services/social_auth_service.dart';
+import 'package:EMART24/features/auth/widgets/auth_background.dart';
+import 'package:EMART24/features/auth/widgets/auth_social_buttons.dart';
+import 'package:EMART24/features/auth/widgets/auth_submit_button.dart';
+import 'package:EMART24/features/auth/widgets/auth_text_field.dart';
+import 'package:EMART24/features/auth/widgets/auth_toggle.dart';
 
 class LoginScreen extends StatefulWidget {
   final bool returnResultOnSuccess;
@@ -61,11 +61,9 @@ class _LoginScreenState extends State<LoginScreen> {
     final bool rememberMeEnabled =
         await AppStorage.getBool(_rememberMeEnabledKey) ?? false;
     final String rememberedIdentifier =
-        (await AppStorage.getString(_rememberedIdentifierKey) ?? '').trim();
+    (await AppStorage.getString(_rememberedIdentifierKey) ?? '').trim();
 
-    if (!mounted) {
-      return;
-    }
+    if (!mounted) return;
 
     setState(() {
       _rememberMe = rememberMeEnabled;
@@ -84,15 +82,12 @@ class _LoginScreenState extends State<LoginScreen> {
       await AppStorage.setString(_rememberedIdentifierKey, identifier.trim());
       return;
     }
-
     await AppStorage.setBool(_rememberMeEnabledKey, false);
     await AppStorage.remove(_rememberedIdentifierKey);
   }
 
   Future<void> _submit() async {
-    if (_isSubmitting || _isSocialLoading) {
-      return;
-    }
+    if (_isSubmitting || _isSocialLoading) return;
 
     final AuthValidationResult validation = AuthService.validateLoginInput(
       identifier: _identifierController.text,
@@ -102,17 +97,12 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!validation.isValid) {
       FocusScope.of(context).unfocus();
       await Future<void>.delayed(const Duration(milliseconds: 120));
-      if (!mounted) {
-        return;
-      }
-
+      if (!mounted) return;
       _showSnack(validation.message ?? 'Invalid input');
       return;
     }
 
-    setState(() {
-      _isSubmitting = true;
-    });
+    setState(() => _isSubmitting = true);
 
     try {
       final tokens = await _authApiService.login(
@@ -130,9 +120,7 @@ class _LoginScreenState extends State<LoginScreen> {
       );
       SessionManager.login(identifier: validation.normalizedIdentifier);
 
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
 
       if (widget.returnResultOnSuccess) {
         Navigator.of(context).pop(true);
@@ -140,22 +128,18 @@ class _LoginScreenState extends State<LoginScreen> {
       }
 
       Navigator.pushNamedAndRemoveUntil(
-        context,
-        AppRoutes.home,
-        (route) => false,
+        context, AppRoutes.home, (route) => false,
       );
     } on ApiException catch (error) {
       _showSnack(error.message);
     } catch (_) {
       _showSnack('Unable to login right now. Please try again.');
     } finally {
-      if (mounted) {
-        setState(() {
-          _isSubmitting = false;
-        });
-      }
+      if (mounted) setState(() => _isSubmitting = false);
     }
   }
+
+  // ── Social handlers ──────────────────────────────────────────────────────────
 
   Future<void> _handleGoogleSignIn() async {
     await _handleSocialSignIn(
@@ -165,13 +149,14 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _handleAppleSignIn() async {
-    await _handleSocialSignIn(SocialAuthService.signInWithApple);
+    await _handleSocialSignIn(
+      SocialAuthService.signInWithApple,
+      useBackendForApple: true, // ✅ now connected to backend
+    );
   }
 
   Future<void> _handlePhoneSignIn() async {
-    if (_isSubmitting || _isSocialLoading) {
-      return;
-    }
+    if (_isSubmitting || _isSocialLoading) return;
 
     final bool? didAuthenticate = await Navigator.of(context).push<bool>(
       MaterialPageRoute<bool>(
@@ -181,9 +166,7 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
 
-    if (!mounted || didAuthenticate != true) {
-      return;
-    }
+    if (!mounted || didAuthenticate != true) return;
 
     if (widget.returnResultOnSuccess) {
       Navigator.of(context).pop(true);
@@ -191,26 +174,24 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _handleSocialSignIn(
-    Future<SocialAuthResult> Function() signInAction, {
-    bool useBackendForGoogle = false,
-  }) async {
-    if (_isSubmitting || _isSocialLoading) {
-      return;
-    }
+      Future<SocialAuthResult> Function() signInAction, {
+        bool useBackendForGoogle = false,
+        bool useBackendForApple = false, // ✅ new param
+      }) async {
+    if (_isSubmitting || _isSocialLoading) return;
 
-    setState(() {
-      _isSocialLoading = true;
-    });
+    setState(() => _isSocialLoading = true);
 
     try {
       final SocialAuthResult result = await signInAction();
+
+      // ── Google ─────────────────────────────────────────────────────────────
       if (useBackendForGoogle) {
         final String? idToken = result.idToken?.trim();
         if (idToken == null || idToken.isEmpty) {
           _showSnack('Google sign-in did not return an ID token.');
           return;
         }
-
         final tokens = await _authApiService.googleLoginClient(
           idToken: idToken,
           accessToken: result.accessToken,
@@ -219,61 +200,75 @@ class _LoginScreenState extends State<LoginScreen> {
           _showSnack('Google login response does not include an access token.');
           return;
         }
-
         await _persistRememberMe(
           identifier: result.identifier ?? '',
           rememberMe: _rememberMe,
         );
         SessionManager.login(identifier: result.identifier);
-
-        if (!mounted) {
-          return;
-        }
-
+        if (!mounted) return;
         if (widget.returnResultOnSuccess) {
           Navigator.of(context).pop(true);
           return;
         }
-
         Navigator.pushNamedAndRemoveUntil(
-          context,
-          AppRoutes.home,
-          (route) => false,
+          context, AppRoutes.home, (route) => false,
         );
         return;
       }
 
-      _showSnack(
-        'Social sign-in is ready on client. Connect it to your backend auth endpoint to complete login.',
-      );
+      // ── Apple ✅ ───────────────────────────────────────────────────────────
+      if (useBackendForApple) {
+        final String? idToken = result.idToken?.trim();
+        if (idToken == null || idToken.isEmpty) {
+          _showSnack('Apple sign-in did not return an ID token.');
+          return;
+        }
+        final tokens = await _authApiService.appleLoginClient(
+          idToken: idToken,
+          accessToken: result.accessToken,
+        );
+        if (!tokens.hasAccessToken) {
+          _showSnack('Apple login response does not include an access token.');
+          return;
+        }
+        await _persistRememberMe(
+          identifier: result.identifier ?? '',
+          rememberMe: _rememberMe,
+        );
+        SessionManager.login(identifier: result.identifier);
+        if (!mounted) return;
+        if (widget.returnResultOnSuccess) {
+          Navigator.of(context).pop(true);
+          return;
+        }
+        Navigator.pushNamedAndRemoveUntil(
+          context, AppRoutes.home, (route) => false,
+        );
+        return;
+      }
+
+      _showSnack('Social sign-in not connected to backend.');
+
     } on ApiException catch (error) {
       _showSnack(error.message);
     } on SocialAuthException catch (error) {
       _showSnack(error.message);
-    } catch (_) {
+    } catch (e) {
       _showSnack('Authentication failed. Please try again.');
     } finally {
-      if (mounted) {
-        setState(() {
-          _isSocialLoading = false;
-        });
-      }
+      if (mounted) setState(() => _isSocialLoading = false);
     }
   }
 
   void _showSnack(String message) {
-    if (!mounted) {
-      return;
-    }
+    if (!mounted) return;
 
     final DateTime now = DateTime.now();
     final bool isDuplicate =
         _lastSnackMessage == message &&
-        _lastSnackAt != null &&
-        now.difference(_lastSnackAt!) <= _snackDedupWindow;
-    if (isDuplicate) {
-      return;
-    }
+            _lastSnackAt != null &&
+            now.difference(_lastSnackAt!) <= _snackDedupWindow;
+    if (isDuplicate) return;
 
     _lastSnackMessage = message;
     _lastSnackAt = now;
@@ -295,7 +290,7 @@ class _LoginScreenState extends State<LoginScreen> {
       titlePrefix: 'Login for',
       titleHighlight: 'Mart 24',
       description:
-          'Create a new account to receive exclusive offers and shop products at Mart 24',
+      'Create a new account to receive exclusive offers and shop products at Mart 24',
       isFormScrollable: false,
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -308,7 +303,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 Navigator.of(context).pop(AuthSwitchResult.toRegister);
                 return;
               }
-
               Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(
@@ -341,9 +335,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   value: _rememberMe,
                   onChanged: (value) async {
                     final bool nextValue = value ?? false;
-                    setState(() {
-                      _rememberMe = nextValue;
-                    });
+                    setState(() => _rememberMe = nextValue);
                     if (!nextValue) {
                       await _persistRememberMe(
                         identifier: '',

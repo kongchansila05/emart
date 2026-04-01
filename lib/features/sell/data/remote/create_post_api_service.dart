@@ -1,10 +1,10 @@
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
-import 'package:mart24/core/config/app_environment.dart';
-import 'package:mart24/core/network/api_client.dart';
-import 'package:mart24/core/network/api_endpoints.dart';
-import 'package:mart24/core/network/api_exception.dart';
+import 'package:EMART24/core/config/app_environment.dart';
+import 'package:EMART24/core/network/api_client.dart';
+import 'package:EMART24/core/network/api_endpoints.dart';
+import 'package:EMART24/core/network/api_exception.dart';
 
 class PostUploadLimits {
   const PostUploadLimits({this.perImageBytes, this.totalBytes});

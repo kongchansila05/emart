@@ -1,12 +1,12 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
-import 'package:mart24/core/state/session_manager.dart';
-import 'package:mart24/core/theme/app_color.dart';
-import 'package:mart24/core/theme/app_text_style.dart';
-import 'package:mart24/features/auth/models/auth_switch_result.dart';
-import 'package:mart24/features/auth/screens/login_screen.dart';
-import 'package:mart24/features/auth/screens/register_screen.dart';
+import 'package:EMART24/core/state/session_manager.dart';
+import 'package:EMART24/core/theme/app_color.dart';
+import 'package:EMART24/core/theme/app_text_style.dart';
+import 'package:EMART24/features/auth/models/auth_switch_result.dart';
+import 'package:EMART24/features/auth/screens/login_screen.dart';
+import 'package:EMART24/features/auth/screens/register_screen.dart';
 
 // Temporary testing toggle. Set to `false` to re-enable auth gate.
 const bool _skipAuthGateForTesting = true;

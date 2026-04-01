@@ -3,11 +3,11 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter/foundation.dart';
-import 'package:mart24/core/config/firebase_bootstrap.dart';
-import 'package:mart24/core/config/google_auth_config.dart';
-import 'package:mart24/core/state/profile_manager.dart';
-import 'package:mart24/core/storage/app_storage.dart';
-import 'package:mart24/core/storage/token_storage.dart';
+import 'package:EMART24/core/config/firebase_bootstrap.dart';
+import 'package:EMART24/core/config/google_auth_config.dart';
+import 'package:EMART24/core/state/profile_manager.dart';
+import 'package:EMART24/core/storage/app_storage.dart';
+import 'package:EMART24/core/storage/token_storage.dart';
 
 class SessionManager {
   SessionManager._();

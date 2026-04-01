@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:enefty_icons/enefty_icons.dart';
-import 'package:mart24/core/theme/app_color.dart';
-import 'package:mart24/core/theme/app_text_style.dart';
+import 'package:EMART24/core/theme/app_color.dart';
+import 'package:EMART24/core/theme/app_text_style.dart';
 
 class ChatScreen extends StatefulWidget {
   final String contactName;

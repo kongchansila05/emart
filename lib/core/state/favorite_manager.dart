@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:mart24/features/home/models/product.dart';
+import 'package:EMART24/features/home/models/product.dart';
 
 class FavoriteManager {
   FavoriteManager._();

@@ -1,6 +1,6 @@
-import 'package:mart24/features/home/data/remote/categories_api_service.dart';
-import 'package:mart24/features/home/data/remote/remote_category.dart';
-import 'package:mart24/features/home/domain/repositories/category_repository.dart';
+import 'package:EMART24/features/home/data/remote/categories_api_service.dart';
+import 'package:EMART24/features/home/data/remote/remote_category.dart';
+import 'package:EMART24/features/home/domain/repositories/category_repository.dart';
 
 class CategoryRepositoryImpl implements CategoryRepository {
   CategoryRepositoryImpl({CategoriesApiService? apiService})

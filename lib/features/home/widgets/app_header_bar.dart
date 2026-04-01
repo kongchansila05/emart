@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:liquid_glass_ui/liquid_glass_ui.dart';
-import 'package:mart24/core/routes/app_routes.dart';
-import 'package:mart24/core/state/favorite_manager.dart';
-import 'package:mart24/core/theme/app_color.dart';
-import 'package:mart24/core/theme/app_text_style.dart';
+import 'package:EMART24/core/routes/app_routes.dart';
+import 'package:EMART24/core/state/favorite_manager.dart';
+import 'package:EMART24/core/theme/app_color.dart';
+import 'package:EMART24/core/theme/app_text_style.dart';
 import 'package:enefty_icons/enefty_icons.dart';
-import 'package:mart24/shared/widgets/user_avatar.dart';
+import 'package:EMART24/shared/widgets/user_avatar.dart';
 
 class AppHeaderBar extends StatefulWidget implements PreferredSizeWidget {
   final bool isAuthenticated;

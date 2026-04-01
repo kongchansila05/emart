@@ -1,9 +1,9 @@
-import 'package:mart24/core/config/app_environment.dart';
-import 'package:mart24/core/network/api_client.dart';
-import 'package:mart24/core/network/api_endpoints.dart';
-import 'package:mart24/core/network/mock/mock_api_payloads.dart';
-import 'package:mart24/core/network/models/auth_tokens.dart';
-import 'package:mart24/core/storage/token_storage.dart';
+import 'package:EMART24/core/config/app_environment.dart';
+import 'package:EMART24/core/network/api_client.dart';
+import 'package:EMART24/core/network/api_endpoints.dart';
+import 'package:EMART24/core/network/mock/mock_api_payloads.dart';
+import 'package:EMART24/core/network/models/auth_tokens.dart';
+import 'package:EMART24/core/storage/token_storage.dart';
 
 class AuthApiService {
   AuthApiService({ApiClient? client}) : _client = client ?? ApiClient.instance;
@@ -22,7 +22,6 @@ class AuthApiService {
     required String password,
   }) {
     final String normalizedEmail = identifier.trim().toLowerCase();
-
     return _postAuth(
       path: ApiEndpoints.loginClient,
       data: <String, dynamic>{'email': normalizedEmail, 'password': password},
@@ -73,6 +72,38 @@ class AuthApiService {
       },
     );
   }
+
+  // ── Apple Sign-In ✅ ───────────────────────────────────────────────────────
+
+  Future<AuthTokens> appleLoginClient({
+    required String idToken,
+    String? accessToken,
+  }) {
+    return _postAuth(
+      path: ApiEndpoints.appleLoginClient,
+      data: {
+        'token': idToken,
+        if (accessToken != null && accessToken.trim().isNotEmpty)
+          'accessToken': accessToken,
+      },
+    );
+  }
+
+  Future<AuthTokens> appleRegisterClient({
+    required String idToken,
+    String? accessToken,
+  }) {
+    return _postAuth(
+      path: ApiEndpoints.appleRegisterClient,
+      data: {
+        'token': idToken,
+        if (accessToken != null && accessToken.trim().isNotEmpty)
+          'accessToken': accessToken,
+      },
+    );
+  }
+
+  // ── Phone ──────────────────────────────────────────────────────────────────
 
   Future<AuthTokens?> phoneLoginFirebase({
     required String phoneNumber,
@@ -148,7 +179,6 @@ class AuthApiService {
         refreshToken: tokens.hasRefreshToken ? tokens.refreshToken : null,
       );
     }
-
     return tokens;
   }
 
@@ -163,7 +193,7 @@ class AuthApiService {
       }
       if (response['data'] is Map<String, dynamic>) {
         final Map<String, dynamic> data =
-            response['data'] as Map<String, dynamic>;
+        response['data'] as Map<String, dynamic>;
         if (data['tokens'] is Map<String, dynamic>) {
           return AuthTokens.fromJson(data['tokens'] as Map<String, dynamic>);
         }
@@ -171,7 +201,6 @@ class AuthApiService {
       }
       return AuthTokens.fromJson(response);
     }
-
     return const AuthTokens(accessToken: '', refreshToken: '');
   }
 }

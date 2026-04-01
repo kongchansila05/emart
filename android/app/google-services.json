@@ -1,36 +1,26 @@
 {
   "project_info": {
-    "project_number": "962451194567",
-    "project_id": "marketplace-263ee",
-    "storage_bucket": "marketplace-263ee.firebasestorage.app"
+    "project_number": "597563194177",
+    "project_id": "emart24-6bc24",
+    "storage_bucket": "emart24-6bc24.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:962451194567:android:ba0a1257bc829e71e0b4e2",
+        "mobilesdk_app_id": "1:597563194177:android:652defe33cc2e9eb487fc0",
         "android_client_info": {
-          "package_name": "com.example.mart24"
+          "package_name": "com.kongchansila.EMART24"
         }
       },
-      "oauth_client": [
-        {
-          "client_id": "962451194567-ql5akad8cku7j44j8prhr84ekkj6e8kp.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
+      "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyDyX4U0kZcW-ubXhVAWkC_GH9tqrvyNJKs"
+          "current_key": "AIzaSyBzeQvdgt1tX-rGtNGhk25r7Sk6sMZVIQ0"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "962451194567-ql5akad8cku7j44j8prhr84ekkj6e8kp.apps.googleusercontent.com",
-              "client_type": 3
-            }
-          ]
+          "other_platform_oauth_client": []
         }
       }
     }

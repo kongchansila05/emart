@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:mart24/features/home/models/product.dart';
-import 'package:mart24/shared/widgets/product_card.dart';
+import 'package:EMART24/features/home/models/product.dart';
+import 'package:EMART24/shared/widgets/product_card.dart';
 
 class FilterProductsGridSection extends StatefulWidget {
   final List<Product> products;

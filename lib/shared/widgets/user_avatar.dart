@@ -3,9 +3,9 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:enefty_icons/enefty_icons.dart';
-import 'package:mart24/core/state/profile_manager.dart';
-import 'package:mart24/core/theme/app_color.dart';
-import 'package:mart24/core/utils/image_source_resolver.dart';
+import 'package:EMART24/core/state/profile_manager.dart';
+import 'package:EMART24/core/theme/app_color.dart';
+import 'package:EMART24/core/utils/image_source_resolver.dart';
 
 class UserAvatar extends StatelessWidget {
   final double radius;
@@ -40,7 +40,8 @@ class UserAvatar extends StatelessWidget {
       return null;
     }
 
-    if (ImageSourceResolver.isNetwork(value) || ImageSourceResolver.isAsset(value)) {
+    if (ImageSourceResolver.isNetwork(value) ||
+        ImageSourceResolver.isAsset(value)) {
       return null;
     }
 

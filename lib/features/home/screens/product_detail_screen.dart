@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:mart24/core/routes/app_routes.dart';
-import 'package:mart24/core/state/favorite_manager.dart';
-import 'package:mart24/core/theme/app_color.dart';
-import 'package:mart24/core/utils/favorite_auth_gate.dart';
-import 'package:mart24/core/utils/image_source_resolver.dart';
-import 'package:mart24/features/chat/screens/chat_screen.dart';
-import 'package:mart24/features/home/models/product.dart';
+import 'package:EMART24/core/routes/app_routes.dart';
+import 'package:EMART24/core/state/favorite_manager.dart';
+import 'package:EMART24/core/theme/app_color.dart';
+import 'package:EMART24/core/utils/favorite_auth_gate.dart';
+import 'package:EMART24/core/utils/image_source_resolver.dart';
+import 'package:EMART24/features/chat/screens/chat_screen.dart';
+import 'package:EMART24/features/home/models/product.dart';
 import 'package:enefty_icons/enefty_icons.dart';
 
 class ProductDetailScreen extends StatefulWidget {
@@ -31,7 +31,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       }
     }
 
-    final String primaryImage = ImageSourceResolver.resolve(widget.product.image);
+    final String primaryImage = ImageSourceResolver.resolve(
+      widget.product.image,
+    );
     if (!_shouldIgnoreProductImage(primaryImage)) {
       values.add(primaryImage);
     }

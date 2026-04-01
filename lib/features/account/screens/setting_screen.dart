@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:enefty_icons/enefty_icons.dart';
-import 'package:mart24/core/routes/app_routes.dart';
-import 'package:mart24/core/state/profile_manager.dart';
-import 'package:mart24/core/state/session_manager.dart';
-import 'package:mart24/core/theme/app_color.dart';
-import 'package:mart24/core/theme/app_text_style.dart';
-import 'package:mart24/features/auth/screens/login_screen.dart';
-import 'package:mart24/features/auth/screens/register_screen.dart';
-import 'package:mart24/shared/widgets/user_avatar.dart';
+import 'package:EMART24/core/routes/app_routes.dart';
+import 'package:EMART24/core/state/profile_manager.dart';
+import 'package:EMART24/core/state/session_manager.dart';
+import 'package:EMART24/core/theme/app_color.dart';
+import 'package:EMART24/core/theme/app_text_style.dart';
+import 'package:EMART24/features/auth/screens/login_screen.dart';
+import 'package:EMART24/features/auth/screens/register_screen.dart';
+import 'package:EMART24/shared/widgets/user_avatar.dart';
 
 class SettingScreen extends StatefulWidget {
   const SettingScreen({super.key});

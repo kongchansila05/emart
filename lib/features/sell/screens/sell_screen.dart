@@ -2,13 +2,13 @@
 
 // import 'package:flutter/material.dart';
 // import 'package:image_picker/image_picker.dart';
-// import 'package:mart24/core/network/api_exception.dart';
-// import 'package:mart24/core/state/profile_manager.dart';
-// import 'package:mart24/core/theme/app_color.dart';
-// import 'package:mart24/core/theme/app_text_style.dart';
-// import 'package:mart24/features/category/data/remote/category_api_service.dart';
-// import 'package:mart24/features/category/models/post_category.dart';
-// import 'package:mart24/features/sell/data/remote/create_post_api_service.dart';
+// import 'package:EMART24/core/network/api_exception.dart';
+// import 'package:EMART24/core/state/profile_manager.dart';
+// import 'package:EMART24/core/theme/app_color.dart';
+// import 'package:EMART24/core/theme/app_text_style.dart';
+// import 'package:EMART24/features/category/data/remote/category_api_service.dart';
+// import 'package:EMART24/features/category/models/post_category.dart';
+// import 'package:EMART24/features/sell/data/remote/create_post_api_service.dart';
 
 // class SellScreen extends StatefulWidget {
 //   const SellScreen({super.key});

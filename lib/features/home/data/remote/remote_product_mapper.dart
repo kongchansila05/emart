@@ -1,8 +1,8 @@
 import 'dart:math' as math;
 
-import 'package:mart24/core/network/api_endpoints.dart';
-import 'package:mart24/features/home/data/remote/remote_product.dart';
-import 'package:mart24/features/home/models/product.dart';
+import 'package:EMART24/core/network/api_endpoints.dart';
+import 'package:EMART24/features/home/data/remote/remote_product.dart';
+import 'package:EMART24/features/home/models/product.dart';
 
 extension RemoteProductMapper on RemoteProduct {
   Product toUiProduct() {

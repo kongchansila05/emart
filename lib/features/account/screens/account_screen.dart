@@ -1,16 +1,16 @@
 import 'package:enefty_icons/enefty_icons.dart';
 import 'package:flutter/material.dart';
-import 'package:mart24/core/routes/app_routes.dart';
-import 'package:mart24/core/state/profile_manager.dart';
-import 'package:mart24/core/state/session_manager.dart';
-import 'package:mart24/core/theme/app_color.dart';
-import 'package:mart24/core/theme/app_text_style.dart';
-import 'package:mart24/core/utils/price_input_utils.dart';
-import 'package:mart24/features/account/screens/setting_screen.dart';
-import 'package:mart24/features/auth/screens/login_screen.dart';
-import 'package:mart24/features/auth/screens/register_screen.dart';
-import 'package:mart24/features/home/models/product.dart';
-import 'package:mart24/shared/widgets/user_avatar.dart';
+import 'package:EMART24/core/routes/app_routes.dart';
+import 'package:EMART24/core/state/profile_manager.dart';
+import 'package:EMART24/core/state/session_manager.dart';
+import 'package:EMART24/core/theme/app_color.dart';
+import 'package:EMART24/core/theme/app_text_style.dart';
+import 'package:EMART24/core/utils/price_input_utils.dart';
+import 'package:EMART24/features/account/screens/setting_screen.dart';
+import 'package:EMART24/features/auth/screens/login_screen.dart';
+import 'package:EMART24/features/auth/screens/register_screen.dart';
+import 'package:EMART24/features/home/models/product.dart';
+import 'package:EMART24/shared/widgets/user_avatar.dart';
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});

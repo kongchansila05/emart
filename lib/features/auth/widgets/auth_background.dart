@@ -1,6 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:mart24/core/theme/app_color.dart';
+import 'package:EMART24/core/theme/app_color.dart';
 
 class AuthBackground extends StatelessWidget {
   final String titlePrefix;

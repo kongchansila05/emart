@@ -4,12 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:intl_phone_field/phone_number.dart' as intl_phone;
-import 'package:mart24/core/theme/app_color.dart';
-import 'package:mart24/features/auth/controllers/phone_number_auth_controller.dart';
-import 'package:mart24/features/auth/screens/otp_screen.dart';
-import 'package:mart24/features/auth/services/phone_auth_service.dart';
-import 'package:mart24/features/auth/widgets/auth_background.dart';
-import 'package:mart24/features/auth/widgets/auth_submit_button.dart';
+import 'package:EMART24/core/theme/app_color.dart';
+import 'package:EMART24/features/auth/controllers/phone_number_auth_controller.dart';
+import 'package:EMART24/features/auth/screens/otp_screen.dart';
+import 'package:EMART24/features/auth/services/phone_auth_service.dart';
+import 'package:EMART24/features/auth/widgets/auth_background.dart';
+import 'package:EMART24/features/auth/widgets/auth_submit_button.dart';
 
 class PhoneNumberAuthScreen extends StatefulWidget {
   final bool returnResultOnSuccess;

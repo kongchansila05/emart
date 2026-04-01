@@ -1,6 +1,6 @@
-import 'package:mart24/features/home/data/remote/banners_api_service.dart';
-import 'package:mart24/features/home/data/remote/remote_banner.dart';
-import 'package:mart24/features/home/domain/repositories/banner_repository.dart';
+import 'package:EMART24/features/home/data/remote/banners_api_service.dart';
+import 'package:EMART24/features/home/data/remote/remote_banner.dart';
+import 'package:EMART24/features/home/domain/repositories/banner_repository.dart';
 
 class BannerRepositoryImpl implements BannerRepository {
   BannerRepositoryImpl({BannersApiService? apiService})

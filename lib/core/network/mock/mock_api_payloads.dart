@@ -192,7 +192,7 @@ class MockApiPayloads {
   static const Map<String, dynamic> userProfile = <String, dynamic>{
     'id': 'mock-user-1',
     'name': 'Demo User',
-    'email': 'demo@mart24.local',
+    'email': 'demo@EMART24.local',
     'role': 'client',
   };
 

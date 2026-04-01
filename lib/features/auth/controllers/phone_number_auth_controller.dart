@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
-import 'package:mart24/features/auth/services/device_phone_hint_service.dart';
-import 'package:mart24/features/auth/services/phone_auth_service.dart';
+import 'package:EMART24/features/auth/services/device_phone_hint_service.dart';
+import 'package:EMART24/features/auth/services/phone_auth_service.dart';
 
 class PhoneNumberAuthController extends ChangeNotifier {
   PhoneNumberAuthController({PhoneAuthService? phoneAuthService})

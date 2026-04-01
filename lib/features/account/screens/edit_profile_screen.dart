@@ -3,13 +3,13 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:mart24/core/state/profile_manager.dart';
-import 'package:mart24/core/state/session_manager.dart';
-import 'package:mart24/core/theme/app_color.dart';
-import 'package:mart24/core/theme/app_text_style.dart';
-import 'package:mart24/features/auth/screens/login_screen.dart';
-import 'package:mart24/features/auth/screens/register_screen.dart';
-import 'package:mart24/shared/widgets/user_avatar.dart';
+import 'package:EMART24/core/state/profile_manager.dart';
+import 'package:EMART24/core/state/session_manager.dart';
+import 'package:EMART24/core/theme/app_color.dart';
+import 'package:EMART24/core/theme/app_text_style.dart';
+import 'package:EMART24/features/auth/screens/login_screen.dart';
+import 'package:EMART24/features/auth/screens/register_screen.dart';
+import 'package:EMART24/shared/widgets/user_avatar.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -79,7 +79,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       _draftAvatarPath = pickedFile.path;
     });
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Photo selected. Tap Save Changes to apply')),
+      const SnackBar(
+        content: Text('Photo selected. Tap Save Changes to apply'),
+      ),
     );
   }
 
@@ -87,9 +89,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     setState(() {
       _draftAvatarPath = null;
     });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Photo removed from draft')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Photo removed from draft')));
   }
 
   @override

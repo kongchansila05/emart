@@ -5,7 +5,7 @@ class DevicePhoneHintService {
   DevicePhoneHintService._();
 
   static const MethodChannel _channel = MethodChannel(
-    'mart24/device_phone_hint',
+    'EMART24/device_phone_hint',
   );
 
   static bool get isSupportedOnCurrentPlatform =>

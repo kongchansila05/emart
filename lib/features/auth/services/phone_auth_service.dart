@@ -2,11 +2,11 @@ import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
-import 'package:mart24/core/config/app_environment.dart';
-import 'package:mart24/core/config/firebase_bootstrap.dart';
-import 'package:mart24/core/storage/app_storage.dart';
-import 'package:mart24/features/auth/services/api/auth_api_service.dart';
-import 'package:mart24/features/auth/services/auth_service.dart';
+import 'package:EMART24/core/config/app_environment.dart';
+import 'package:EMART24/core/config/firebase_bootstrap.dart';
+import 'package:EMART24/core/storage/app_storage.dart';
+import 'package:EMART24/features/auth/services/api/auth_api_service.dart';
+import 'package:EMART24/features/auth/services/auth_service.dart';
 
 enum PhoneAuthFailureType {
   configuration,

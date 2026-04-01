@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
-import 'package:mart24/core/theme/app_text_style.dart';
+import 'package:EMART24/core/theme/app_text_style.dart';
 
 class AuthSocialButtons extends StatelessWidget {
   final VoidCallback onAppleTap;

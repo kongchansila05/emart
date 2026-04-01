@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:enefty_icons/enefty_icons.dart';
-import 'package:mart24/core/state/profile_manager.dart';
-import 'package:mart24/core/theme/app_color.dart';
-import 'package:mart24/core/utils/image_source_resolver.dart';
-import 'package:mart24/features/home/models/product.dart';
+import 'package:EMART24/core/state/profile_manager.dart';
+import 'package:EMART24/core/theme/app_color.dart';
+import 'package:EMART24/core/utils/image_source_resolver.dart';
+import 'package:EMART24/features/home/models/product.dart';
 
 class ViewProfileScreen extends StatelessWidget {
   const ViewProfileScreen({super.key});

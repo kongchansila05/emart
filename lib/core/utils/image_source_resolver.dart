@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mart24/core/network/api_endpoints.dart';
+import 'package:EMART24/core/network/api_endpoints.dart';
 
 class ImageSourceResolver {
   ImageSourceResolver._();

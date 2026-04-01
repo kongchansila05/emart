@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:mart24/core/network/api_endpoints.dart';
-import 'package:mart24/core/network/api_exception.dart';
+import 'package:EMART24/core/network/api_endpoints.dart';
+import 'package:EMART24/core/network/api_exception.dart';
 
 typedef AccessTokenProvider = Future<String?> Function();
 typedef RefreshTokenHandler = Future<String?> Function();

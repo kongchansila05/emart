@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:enefty_icons/enefty_icons.dart';
-import 'package:mart24/core/state/favorite_manager.dart';
-import 'package:mart24/core/theme/app_color.dart';
-import 'package:mart24/core/theme/app_shadow.dart';
-import 'package:mart24/core/theme/app_text_style.dart';
-import 'package:mart24/core/utils/favorite_auth_gate.dart';
-import 'package:mart24/core/utils/image_source_resolver.dart';
-import 'package:mart24/features/home/models/product.dart';
-import 'package:mart24/features/home/screens/product_detail_screen.dart';
-import 'package:mart24/shared/widgets/favorite_icon.dart';
+import 'package:EMART24/core/state/favorite_manager.dart';
+import 'package:EMART24/core/theme/app_color.dart';
+import 'package:EMART24/core/theme/app_shadow.dart';
+import 'package:EMART24/core/theme/app_text_style.dart';
+import 'package:EMART24/core/utils/favorite_auth_gate.dart';
+import 'package:EMART24/core/utils/image_source_resolver.dart';
+import 'package:EMART24/features/home/models/product.dart';
+import 'package:EMART24/features/home/screens/product_detail_screen.dart';
+import 'package:EMART24/shared/widgets/favorite_icon.dart';
 
 class HomeProductCard extends StatelessWidget {
   final Product product;

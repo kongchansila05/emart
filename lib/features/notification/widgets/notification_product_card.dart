@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:enefty_icons/enefty_icons.dart';
-import 'package:mart24/core/theme/app_text_style.dart';
-import 'package:mart24/features/home/models/product.dart';
-import 'package:mart24/features/home/screens/product_detail_screen.dart';
+import 'package:EMART24/core/theme/app_text_style.dart';
+import 'package:EMART24/features/home/models/product.dart';
+import 'package:EMART24/features/home/screens/product_detail_screen.dart';
 
 class NotificationProductCard extends StatelessWidget {
   final Product product;

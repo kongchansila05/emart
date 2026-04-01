@@ -1,14 +1,14 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:mart24/core/theme/app_color.dart';
-import 'package:mart24/core/utils/auth_gate.dart';
-import 'package:mart24/features/account/screens/account_screen.dart';
-import 'package:mart24/features/category/screen/category_screen.dart';
-import 'package:mart24/features/chat/screens/list_chat_screen.dart';
-import 'package:mart24/features/home/screens/home_screen.dart';
-import 'package:mart24/features/search/screens/search_screen.dart';
+import 'package:EMART24/core/theme/app_color.dart';
+import 'package:EMART24/core/utils/auth_gate.dart';
+import 'package:EMART24/features/account/screens/account_screen.dart';
+import 'package:EMART24/features/category/screen/category_screen.dart';
+import 'package:EMART24/features/chat/screens/list_chat_screen.dart';
+import 'package:EMART24/features/home/screens/home_screen.dart';
+import 'package:EMART24/features/search/screens/search_screen.dart';
 import 'package:enefty_icons/enefty_icons.dart';
-import 'package:mart24/shared/widgets/user_avatar.dart';
+import 'package:EMART24/shared/widgets/user_avatar.dart';
 
 class NavItem {
   final IconData icon;

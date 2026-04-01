@@ -2,28 +2,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
-/// Handles social sign-in flows and returns a [SocialAuthResult] containing
-/// a Firebase ID token that the backend can verify via
-/// `verifyFirebaseGoogleToken()` / `verifyFirebasePhoneToken()`.
 class SocialAuthService {
   SocialAuthService._();
 
   // ── Google ──────────────────────────────────────────────────────────────────
-  //
-  // Flow:
-  //   1. google_sign_in  → GoogleSignInAuthentication (Google access token)
-  //   2. firebase_auth   → OAuthCredential
-  //   3. FirebaseAuth.signInWithCredential → UserCredential
-  //   4. user.getIdToken() → Firebase ID token  ✅  (what the backend expects)
-  //
-  // The backend's verifyFirebaseGoogleToken() validates:
-  //   • iss  contains "securetoken.google.com"
-  //   • firebase.sign_in_provider == "google.com"
-  //   • exp  not expired
-  //   • email present
-  //
   static Future<SocialAuthResult> signInWithGoogle() async {
-    // Force account picker so users can switch accounts.
     final GoogleSignIn googleSignIn = GoogleSignIn();
     await googleSignIn.signOut();
 
@@ -32,12 +15,10 @@ class SocialAuthService {
       throw const SocialAuthException('Google sign-in was cancelled.');
     }
 
-    // Step 1 — get Google credentials.
-    final GoogleSignInAuthentication googleAuth =
-    await account.authentication;
+    final GoogleSignInAuthentication googleAuth = await account.authentication;
 
     final String? googleAccessToken = googleAuth.accessToken;
-    final String? googleIdToken     = googleAuth.idToken;
+    final String? googleIdToken = googleAuth.idToken;
 
     if (googleAccessToken == null && googleIdToken == null) {
       throw const SocialAuthException(
@@ -45,13 +26,11 @@ class SocialAuthService {
       );
     }
 
-    // Step 2 — build Firebase credential from Google tokens.
     final OAuthCredential credential = GoogleAuthProvider.credential(
       accessToken: googleAccessToken,
-      idToken:     googleIdToken,
+      idToken: googleIdToken,
     );
 
-    // Step 3 — sign into Firebase (creates/links the Firebase user).
     final UserCredential userCredential =
     await FirebaseAuth.instance.signInWithCredential(credential);
 
@@ -62,33 +41,30 @@ class SocialAuthService {
       );
     }
 
-    // Step 4 — get the Firebase ID token (forceRefresh = false is fine here
-    //           since the token was just issued).
-    // getIdToken() returns String? in firebase_auth ^5.x so we null-check it.
     final String? firebaseIdToken = await firebaseUser.getIdToken();
-
     if (firebaseIdToken == null || firebaseIdToken.isEmpty) {
-      throw const SocialAuthException(
-        'Firebase returned an empty ID token.',
-      );
+      throw const SocialAuthException('Firebase returned an empty ID token.');
     }
 
     return SocialAuthResult(
-      identifier:  firebaseUser.email ?? account.email,
-      idToken:     firebaseIdToken,   // Firebase JWT ✅
-      accessToken: googleAccessToken, // kept for optional use
+      identifier: firebaseUser.email ?? account.email,
+      idToken: firebaseIdToken,
+      accessToken: googleAccessToken,
     );
   }
 
   // ── Apple ───────────────────────────────────────────────────────────────────
   static Future<SocialAuthResult> signInWithApple() async {
     final bool isAvailable = await SignInWithApple.isAvailable();
+    print('🍎 Apple available: $isAvailable');
+
     if (!isAvailable) {
       throw const SocialAuthException(
         'Apple Sign-In is not available on this device.',
       );
     }
 
+    // Step 1 — get Apple credential
     final AuthorizationCredentialAppleID appleCredential =
     await SignInWithApple.getAppleIDCredential(
       scopes: const [
@@ -96,16 +72,63 @@ class SocialAuthService {
         AppleIDAuthorizationScopes.fullName,
       ],
     );
+    print('🍎 Got Apple credential: ${appleCredential.userIdentifier}');
 
-    final String? idToken = appleCredential.identityToken;
-    if (idToken == null) {
+    final String? appleIdToken = appleCredential.identityToken;
+    print('🍎 Apple idToken null? ${appleIdToken == null}');
+
+    if (appleIdToken == null) {
       throw const SocialAuthException('Unable to get Apple identity token.');
     }
 
-    final String identifier =
-    (appleCredential.email ?? appleCredential.userIdentifier ?? '').trim();
+    // Step 2 — build Firebase credential from Apple tokens
+    print('🍎 Building Firebase credential...');
+    final OAuthCredential credential = OAuthProvider('apple.com').credential(
+      idToken: appleIdToken,
+      accessToken: appleCredential.authorizationCode,
+    );
 
-    return SocialAuthResult(identifier: identifier, idToken: idToken);
+    // Step 3 — sign into Firebase
+    print('🍎 Signing into Firebase...');
+    try {
+      final UserCredential userCredential =
+      await FirebaseAuth.instance.signInWithCredential(credential);
+      print('🍎 Firebase sign-in success: ${userCredential.user?.uid}');
+
+      final User? firebaseUser = userCredential.user;
+      if (firebaseUser == null) {
+        throw const SocialAuthException(
+          'Firebase sign-in succeeded but returned no user.',
+        );
+      }
+
+      // Step 4 — get Firebase ID token
+      print('🍎 Getting Firebase ID token...');
+      final String? firebaseIdToken = await firebaseUser.getIdToken();
+      print('🍎 Firebase token received: ${firebaseIdToken != null}');
+
+      if (firebaseIdToken == null || firebaseIdToken.isEmpty) {
+        throw const SocialAuthException('Firebase returned an empty ID token.');
+      }
+
+      final String identifier = (
+          firebaseUser.email ??
+              appleCredential.email ??
+              appleCredential.userIdentifier ??
+              ''
+      ).trim();
+      print('🍎 identifier: $identifier');
+
+      return SocialAuthResult(
+        identifier: identifier,
+        idToken: firebaseIdToken,
+        accessToken: appleCredential.authorizationCode,
+      );
+    } catch (e) {
+      print('🍎 Firebase error type: ${e.runtimeType}');
+      print('🍎 Firebase error: $e');
+      rethrow;
+    }
   }
 }
 
@@ -124,9 +147,5 @@ class SocialAuthResult {
   final String? idToken;
   final String? accessToken;
 
-  const SocialAuthResult({
-    this.identifier,
-    this.idToken,
-    this.accessToken,
-  });
+  const SocialAuthResult({this.identifier, this.idToken, this.accessToken});
 }

@@ -1,19 +1,19 @@
 import 'package:enefty_icons/enefty_icons.dart';
 import 'package:flutter/material.dart';
-import 'package:mart24/core/network/api_exception.dart';
-import 'package:mart24/core/routes/app_routes.dart';
-import 'package:mart24/core/state/session_manager.dart';
-import 'package:mart24/features/auth/models/auth_switch_result.dart';
-import 'package:mart24/features/auth/screens/login_screen.dart';
-import 'package:mart24/features/auth/screens/phone_number_auth_screen.dart';
-import 'package:mart24/features/auth/services/api/auth_api_service.dart';
-import 'package:mart24/features/auth/services/auth_service.dart';
-import 'package:mart24/features/auth/services/social_auth_service.dart';
-import 'package:mart24/features/auth/widgets/auth_background.dart';
-import 'package:mart24/features/auth/widgets/auth_social_buttons.dart';
-import 'package:mart24/features/auth/widgets/auth_submit_button.dart';
-import 'package:mart24/features/auth/widgets/auth_text_field.dart';
-import 'package:mart24/features/auth/widgets/auth_toggle.dart';
+import 'package:EMART24/core/network/api_exception.dart';
+import 'package:EMART24/core/routes/app_routes.dart';
+import 'package:EMART24/core/state/session_manager.dart';
+import 'package:EMART24/features/auth/models/auth_switch_result.dart';
+import 'package:EMART24/features/auth/screens/login_screen.dart';
+import 'package:EMART24/features/auth/screens/phone_number_auth_screen.dart';
+import 'package:EMART24/features/auth/services/api/auth_api_service.dart';
+import 'package:EMART24/features/auth/services/auth_service.dart';
+import 'package:EMART24/features/auth/services/social_auth_service.dart';
+import 'package:EMART24/features/auth/widgets/auth_background.dart';
+import 'package:EMART24/features/auth/widgets/auth_social_buttons.dart';
+import 'package:EMART24/features/auth/widgets/auth_submit_button.dart';
+import 'package:EMART24/features/auth/widgets/auth_text_field.dart';
+import 'package:EMART24/features/auth/widgets/auth_toggle.dart';
 
 class RegisterScreen extends StatefulWidget {
   final bool returnResultOnSuccess;
@@ -53,10 +53,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
 
     final AuthValidationResult validation =
-        AuthService.validateRegistrationInput(
-          email: _emailController.text,
-          password: _passwordController.text,
-        );
+    AuthService.validateRegistrationInput(
+      email: _emailController.text,
+      password: _passwordController.text,
+    );
 
     if (!validation.isValid) {
       FocusScope.of(context).unfocus();
@@ -100,7 +100,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       Navigator.pushNamedAndRemoveUntil(
         context,
         AppRoutes.home,
-        (route) => false,
+            (route) => false,
       );
     } on ApiException catch (error) {
       _showSnack(error.message);
@@ -123,7 +123,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> _handleAppleSignIn() async {
-    await _handleSocialSignIn(SocialAuthService.signInWithApple);
+    await _handleSocialSignIn(
+      SocialAuthService.signInWithApple,
+      useBackendForApple: true, // ✅ connected to backend
+    );
   }
 
   Future<void> _handlePhoneSignIn() async {
@@ -149,9 +152,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> _handleSocialSignIn(
-    Future<SocialAuthResult> Function() signInAction, {
-    bool useBackendForGoogle = false,
-  }) async {
+      Future<SocialAuthResult> Function() signInAction, {
+        bool useBackendForGoogle = false,
+        bool useBackendForApple = false, // ✅ new param
+      }) async {
     if (_isSubmitting || _isSocialLoading) {
       return;
     }
@@ -162,6 +166,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     try {
       final SocialAuthResult result = await signInAction();
+
+      // ── Google ────────────────────────────────────────────────────────────
       if (useBackendForGoogle) {
         final String? idToken = result.idToken?.trim();
         if (idToken == null || idToken.isEmpty) {
@@ -194,14 +200,50 @@ class _RegisterScreenState extends State<RegisterScreen> {
         Navigator.pushNamedAndRemoveUntil(
           context,
           AppRoutes.home,
-          (route) => false,
+              (route) => false,
         );
         return;
       }
 
-      _showSnack(
-        'Social sign-in is ready on client. Connect it to your backend auth endpoint to complete registration.',
-      );
+      // ── Apple ✅ ──────────────────────────────────────────────────────────
+      if (useBackendForApple) {
+        final String? idToken = result.idToken?.trim();
+        if (idToken == null || idToken.isEmpty) {
+          _showSnack('Apple sign-in did not return an ID token.');
+          return;
+        }
+
+        final tokens = await _authApiService.appleRegisterClient(
+          idToken: idToken,
+          accessToken: result.accessToken,
+        );
+        if (!tokens.hasAccessToken) {
+          _showSnack(
+            'Apple register response does not include an access token.',
+          );
+          return;
+        }
+
+        SessionManager.login(identifier: result.identifier);
+
+        if (!mounted) {
+          return;
+        }
+
+        if (widget.returnResultOnSuccess) {
+          Navigator.of(context).pop(true);
+          return;
+        }
+
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          AppRoutes.home,
+              (route) => false,
+        );
+        return;
+      }
+
+      _showSnack('Social sign-in is not configured for this action.');
     } on ApiException catch (error) {
       _showSnack(error.message);
     } on SocialAuthException catch (error) {
@@ -225,8 +267,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final DateTime now = DateTime.now();
     final bool isDuplicate =
         _lastSnackMessage == message &&
-        _lastSnackAt != null &&
-        now.difference(_lastSnackAt!) <= _snackDedupWindow;
+            _lastSnackAt != null &&
+            now.difference(_lastSnackAt!) <= _snackDedupWindow;
     if (isDuplicate) {
       return;
     }
@@ -251,7 +293,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       titlePrefix: 'Register for',
       titleHighlight: 'Mart 24',
       description:
-          'Create a new account to receive exclusive offers and shop products at Mart 24',
+      'Create a new account to receive exclusive offers and shop products at Mart 24',
       isFormScrollable: false,
       child: Column(
         mainAxisSize: MainAxisSize.min,

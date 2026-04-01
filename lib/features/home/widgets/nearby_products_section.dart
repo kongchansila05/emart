@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:enefty_icons/enefty_icons.dart';
-import 'package:mart24/core/routes/app_routes.dart';
-import 'package:mart24/core/theme/app_color.dart';
-import 'package:mart24/core/theme/app_text_style.dart';
-import 'package:mart24/features/home/models/product.dart';
-import 'package:mart24/features/home/widgets/home_product_card.dart';
+import 'package:EMART24/core/routes/app_routes.dart';
+import 'package:EMART24/core/theme/app_color.dart';
+import 'package:EMART24/core/theme/app_text_style.dart';
+import 'package:EMART24/features/home/models/product.dart';
+import 'package:EMART24/features/home/widgets/home_product_card.dart';
 
 class NearByProductsSection extends StatelessWidget {
   final String? title;

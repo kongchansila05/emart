@@ -1,4 +1,4 @@
-import 'package:mart24/core/config/app_environment.dart';
+import 'package:EMART24/core/config/app_environment.dart';
 
 class ApiConfig {
   ApiConfig._();
@@ -20,6 +20,9 @@ class ApiEndpoints {
   static const String googleRegisterClient = '/auth/google/register';
   static const String googleRegisterStaff = '/auth/google/register/staff';
   static const String phoneLoginFirebase = '/auth/phone';
+  // ── Apple Sign-In ✅ ───────────────────────────────────────────────────────
+  static const String appleLoginClient = '/auth/apple';
+  static const String appleRegisterClient = '/auth/apple/register';
 
   static const String login = loginClient;
   static const String register = registerClient;

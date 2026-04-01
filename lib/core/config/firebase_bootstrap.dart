@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
-import 'package:mart24/firebase_options.dart';
+import 'package:EMART24/firebase_options.dart';
 
 class FirebaseBootstrapResult {
   final bool isSuccess;

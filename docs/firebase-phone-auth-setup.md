@@ -35,7 +35,7 @@ flutter run \
   --dart-define=FIREBASE_ANDROID_APP_ID=your-android-app-id \
   --dart-define=FIREBASE_IOS_API_KEY=your-ios-api-key \
   --dart-define=FIREBASE_IOS_APP_ID=your-ios-app-id \
-  --dart-define=FIREBASE_IOS_BUNDLE_ID=com.example.mart24
+  --dart-define=FIREBASE_IOS_BUNDLE_ID=com.kongchansila.EMART24
 ```
 
 If you run `flutterfire configure`, it is fine for the generated file to replace the fallback `lib/firebase_options.dart`.

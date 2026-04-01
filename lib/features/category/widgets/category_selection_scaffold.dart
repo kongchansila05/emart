@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:mart24/core/theme/app_color.dart';
-import 'package:mart24/core/theme/app_text_style.dart';
-import 'package:mart24/core/utils/image_source_resolver.dart';
+import 'package:EMART24/core/theme/app_color.dart';
+import 'package:EMART24/core/theme/app_text_style.dart';
+import 'package:EMART24/core/utils/image_source_resolver.dart';
 
 class CategorySelectionScaffold<T> extends StatelessWidget {
   const CategorySelectionScaffold({

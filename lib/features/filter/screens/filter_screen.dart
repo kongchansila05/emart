@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
-import 'package:mart24/core/network/paginated_response.dart';
-import 'package:mart24/core/routes/app_routes.dart';
-import 'package:mart24/features/filter/widgets/filter_products_grid_section.dart';
-import 'package:mart24/features/home/data/remote/remote_category.dart';
-import 'package:mart24/features/home/data/remote/remote_product.dart';
-import 'package:mart24/features/home/data/remote/remote_product_mapper.dart';
-import 'package:mart24/features/home/data/repositories/category_repository_impl.dart';
-import 'package:mart24/features/home/data/repositories/product_repository_impl.dart';
-import 'package:mart24/features/home/domain/repositories/category_repository.dart';
-import 'package:mart24/features/home/domain/repositories/product_repository.dart';
-import 'package:mart24/features/home/models/category.dart';
-import 'package:mart24/features/home/models/product.dart';
-import 'package:mart24/shared/widgets/category_section.dart';
-import 'package:mart24/shared/widgets/search_app_bar.dart';
+import 'package:EMART24/core/network/paginated_response.dart';
+import 'package:EMART24/core/routes/app_routes.dart';
+import 'package:EMART24/features/filter/widgets/filter_products_grid_section.dart';
+import 'package:EMART24/features/home/data/remote/remote_category.dart';
+import 'package:EMART24/features/home/data/remote/remote_product.dart';
+import 'package:EMART24/features/home/data/remote/remote_product_mapper.dart';
+import 'package:EMART24/features/home/data/repositories/category_repository_impl.dart';
+import 'package:EMART24/features/home/data/repositories/product_repository_impl.dart';
+import 'package:EMART24/features/home/domain/repositories/category_repository.dart';
+import 'package:EMART24/features/home/domain/repositories/product_repository.dart';
+import 'package:EMART24/features/home/models/category.dart';
+import 'package:EMART24/features/home/models/product.dart';
+import 'package:EMART24/shared/widgets/category_section.dart';
+import 'package:EMART24/shared/widgets/search_app_bar.dart';
 
 class FilterScreen extends StatefulWidget {
   const FilterScreen({super.key});

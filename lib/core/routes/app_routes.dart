@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:mart24/features/account/screens/account_screen.dart';
-import 'package:mart24/features/account/screens/edit_profile_screen.dart';
-import 'package:mart24/features/account/screens/setting_screen.dart';
-import 'package:mart24/features/account/screens/view_profile_screen.dart';
-import 'package:mart24/features/auth/screens/forgot_password_screen.dart';
-import 'package:mart24/features/auth/screens/otp_screen.dart';
-import 'package:mart24/features/auth/screens/login_screen.dart';
-import 'package:mart24/features/category/screen/category_screen.dart';
-import 'package:mart24/features/category/screen/sub_category_screen.dart';
-import 'package:mart24/features/chat/screens/list_chat_screen.dart';
-import 'package:mart24/features/filter/screens/filter_screen.dart';
-import 'package:mart24/features/notification/screens/notification_screen.dart';
-import 'package:mart24/features/auth/screens/register_screen.dart';
-import 'package:mart24/features/search/screens/search_screen.dart';
-import 'package:mart24/shared/widgets/app_bottom_bar.dart';
+import 'package:EMART24/features/account/screens/account_screen.dart';
+import 'package:EMART24/features/account/screens/edit_profile_screen.dart';
+import 'package:EMART24/features/account/screens/setting_screen.dart';
+import 'package:EMART24/features/account/screens/view_profile_screen.dart';
+import 'package:EMART24/features/auth/screens/forgot_password_screen.dart';
+import 'package:EMART24/features/auth/screens/otp_screen.dart';
+import 'package:EMART24/features/auth/screens/login_screen.dart';
+import 'package:EMART24/features/category/screen/category_screen.dart';
+import 'package:EMART24/features/category/screen/sub_category_screen.dart';
+import 'package:EMART24/features/chat/screens/list_chat_screen.dart';
+import 'package:EMART24/features/filter/screens/filter_screen.dart';
+import 'package:EMART24/features/notification/screens/notification_screen.dart';
+import 'package:EMART24/features/auth/screens/register_screen.dart';
+import 'package:EMART24/features/search/screens/search_screen.dart';
+import 'package:EMART24/shared/widgets/app_bottom_bar.dart';
 
 class AppRoutes {
   static const String home = '/';

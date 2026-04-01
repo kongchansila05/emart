@@ -2,13 +2,13 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:mart24/core/routes/app_routes.dart';
-import 'package:mart24/core/state/session_manager.dart';
-import 'package:mart24/core/theme/app_color.dart';
-import 'package:mart24/features/auth/controllers/otp_verification_controller.dart';
-import 'package:mart24/features/auth/services/phone_auth_service.dart';
-import 'package:mart24/features/auth/widgets/auth_background.dart';
-import 'package:mart24/features/auth/widgets/auth_submit_button.dart';
+import 'package:EMART24/core/routes/app_routes.dart';
+import 'package:EMART24/core/state/session_manager.dart';
+import 'package:EMART24/core/theme/app_color.dart';
+import 'package:EMART24/features/auth/controllers/otp_verification_controller.dart';
+import 'package:EMART24/features/auth/services/phone_auth_service.dart';
+import 'package:EMART24/features/auth/widgets/auth_background.dart';
+import 'package:EMART24/features/auth/widgets/auth_submit_button.dart';
 
 class OtpScreen extends StatefulWidget {
   final String phoneNumber;

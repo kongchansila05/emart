@@ -1,5 +1,5 @@
-import 'package:mart24/core/network/api_endpoints.dart';
-import 'package:mart24/features/home/data/remote/remote_banner.dart';
+import 'package:EMART24/core/network/api_endpoints.dart';
+import 'package:EMART24/features/home/data/remote/remote_banner.dart';
 
 extension RemoteBannerUiMapper on RemoteBanner {
   String toUiBannerImage() {

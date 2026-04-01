@@ -1,6 +1,6 @@
-# mart24
+# EMART24
 
-Flutter client for Mart24 marketplace.
+Flutter client for EMART24 marketplace.
 
 ## Run Modes
 
@@ -52,3 +52,11 @@ If `API_BASE_URL` is not set, it defaults to `https://api.e.2m-sy.com/api`.
 - Google Sign-In setup guide: `docs/google-sign-in-setup.md`
 - Backend go-live guide: `docs/backend-hosting-setup.md`
 - Firebase phone auth setup guide: `docs/firebase-phone-auth-setup.md`
+
+
+Platform  Firebase App Id
+web       1:597563194177:web:082290cbaabe6db1487fc0
+android   1:597563194177:android:652defe33cc2e9eb487fc0
+ios       1:597563194177:ios:ee47a8d2f7f12242487fc0
+macos     1:597563194177:ios:ee47a8d2f7f12242487fc0
+windows   1:597563194177:web:c45cea430c41fc3f487fc0

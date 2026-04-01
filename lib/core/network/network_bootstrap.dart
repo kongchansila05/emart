@@ -1,5 +1,5 @@
-import 'package:mart24/core/network/api_client.dart';
-import 'package:mart24/core/storage/token_storage.dart';
+import 'package:EMART24/core/network/api_client.dart';
+import 'package:EMART24/core/storage/token_storage.dart';
 
 class NetworkBootstrap {
   NetworkBootstrap._();

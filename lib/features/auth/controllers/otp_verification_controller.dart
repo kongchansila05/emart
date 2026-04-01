@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
-import 'package:mart24/features/auth/services/phone_auth_service.dart';
+import 'package:EMART24/features/auth/services/phone_auth_service.dart';
 
 sealed class OtpVerificationEvent {}
 

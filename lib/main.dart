@@ -1,13 +1,14 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:mart24/core/config/app_environment.dart';
-import 'package:mart24/core/config/firebase_bootstrap.dart';
-import 'package:mart24/core/network/network_bootstrap.dart';
-import 'package:mart24/core/routes/app_routes.dart';
-import 'package:mart24/core/state/session_manager.dart';
-import 'package:mart24/core/theme/app_themes.dart';
+import 'package:EMART24/core/config/app_environment.dart';
+import 'package:EMART24/core/config/firebase_bootstrap.dart';
+import 'package:EMART24/core/network/network_bootstrap.dart';
+import 'package:EMART24/core/routes/app_routes.dart';
+import 'package:EMART24/core/state/session_manager.dart';
+import 'package:EMART24/core/theme/app_themes.dart';
 import 'firebase_options.dart';
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await _bootstrapApp();

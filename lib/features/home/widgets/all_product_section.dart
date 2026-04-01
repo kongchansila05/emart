@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:mart24/core/theme/app_color.dart';
-import 'package:mart24/core/theme/app_text_style.dart';
-import 'package:mart24/features/home/models/product.dart';
-import 'package:mart24/shared/widgets/product_card.dart';
+import 'package:EMART24/core/theme/app_color.dart';
+import 'package:EMART24/core/theme/app_text_style.dart';
+import 'package:EMART24/features/home/models/product.dart';
+import 'package:EMART24/shared/widgets/product_card.dart';
 
 class AllProductSection extends StatefulWidget {
   final List<Product> products;

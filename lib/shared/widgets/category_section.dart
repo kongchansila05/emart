@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:enefty_icons/enefty_icons.dart';
-import 'package:mart24/core/theme/app_color.dart';
-import 'package:mart24/core/theme/app_text_style.dart';
-import 'package:mart24/core/utils/image_source_resolver.dart';
+import 'package:EMART24/core/theme/app_color.dart';
+import 'package:EMART24/core/theme/app_text_style.dart';
+import 'package:EMART24/core/utils/image_source_resolver.dart';
 
 class CategorySection extends StatelessWidget {
   final String? title;
@@ -125,8 +125,7 @@ class _CategoryItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final String source = ImageSourceResolver.resolve(image);
-    final Widget avatarImage =
-        ImageSourceResolver.isNetwork(source)
+    final Widget avatarImage = ImageSourceResolver.isNetwork(source)
         ? Image.network(
             source,
             fit: BoxFit.cover,
@@ -167,9 +166,15 @@ class _CategoryItem extends StatelessWidget {
 
   Widget _buildPlaceholder() {
     return const DecoratedBox(
-      decoration: BoxDecoration(color: Color(0xFFDFE4EE), shape: BoxShape.circle),
+      decoration: BoxDecoration(
+        color: Color(0xFFDFE4EE),
+        shape: BoxShape.circle,
+      ),
       child: Center(
-        child: Icon(Icons.image_not_supported_outlined, color: Color(0xFF8F97AE)),
+        child: Icon(
+          Icons.image_not_supported_outlined,
+          color: Color(0xFF8F97AE),
+        ),
       ),
     );
   }

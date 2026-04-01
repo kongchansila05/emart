@@ -1,4 +1,4 @@
-import 'package:mart24/core/storage/app_storage.dart';
+import 'package:EMART24/core/storage/app_storage.dart';
 
 class TokenStorage {
   TokenStorage._();

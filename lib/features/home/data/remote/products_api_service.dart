@@ -1,9 +1,9 @@
-import 'package:mart24/core/config/app_environment.dart';
-import 'package:mart24/core/network/api_client.dart';
-import 'package:mart24/core/network/api_endpoints.dart';
-import 'package:mart24/core/network/mock/mock_api_payloads.dart';
-import 'package:mart24/core/network/paginated_response.dart';
-import 'package:mart24/features/home/data/remote/remote_product.dart';
+import 'package:EMART24/core/config/app_environment.dart';
+import 'package:EMART24/core/network/api_client.dart';
+import 'package:EMART24/core/network/api_endpoints.dart';
+import 'package:EMART24/core/network/mock/mock_api_payloads.dart';
+import 'package:EMART24/core/network/paginated_response.dart';
+import 'package:EMART24/features/home/data/remote/remote_product.dart';
 
 class ProductsApiService {
   ProductsApiService({ApiClient? client})

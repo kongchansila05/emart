@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:mart24/features/category/data/remote/category_api_service.dart';
-import 'package:mart24/features/category/models/post_category.dart';
-import 'package:mart24/features/category/screen/sub_category_screen.dart';
-import 'package:mart24/features/category/widgets/category_selection_scaffold.dart';
+import 'package:EMART24/features/category/data/remote/category_api_service.dart';
+import 'package:EMART24/features/category/models/post_category.dart';
+import 'package:EMART24/features/category/screen/sub_category_screen.dart';
+import 'package:EMART24/features/category/widgets/category_selection_scaffold.dart';
 
 class CategoryScreen extends StatefulWidget {
   const CategoryScreen({super.key});
