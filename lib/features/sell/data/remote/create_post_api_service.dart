@@ -6,20 +6,176 @@ import 'package:EMART24/core/network/api_client.dart';
 import 'package:EMART24/core/network/api_endpoints.dart';
 import 'package:EMART24/core/network/api_exception.dart';
 
+// ── Upload limits (used for UI validation before picking images) ──────────────
+
 class PostUploadLimits {
   const PostUploadLimits({this.perImageBytes, this.totalBytes});
-
   final int? perImageBytes;
   final int? totalBytes;
-
   bool get hasAny => perImageBytes != null || totalBytes != null;
 }
+
+// ── Result returned to the caller ─────────────────────────────────────────────
+
+class CreatePostResult {
+  const CreatePostResult({required this.post, required this.uploadedUrls});
+
+  /// The created post object from the server.
+  final Map<String, dynamic> post;
+
+  /// R2 public URLs that were uploaded before the post was saved.
+  final List<String> uploadedUrls;
+}
+
+// ── Service ───────────────────────────────────────────────────────────────────
 
 class CreatePostApiService {
   CreatePostApiService({ApiClient? client})
     : _client = client ?? ApiClient.instance;
 
   final ApiClient _client;
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // STEP 1 — Upload a single image file to R2, return its public URL.
+  //
+  // Endpoint : POST /api/admin/upload  (ApiEndpoints.uploadImage)
+  // Request  : multipart/form-data  { file: <binary>, folder: "posts" }
+  // Response : { "url": "https://cdn.r2.example.com/posts/..." }
+  //
+  // Vue equivalent:
+  //   const { data } = await uploadApi.image(file, 'posts')
+  //   imageUrls.push(data.url)
+  // ───────────────────────────────────────────────────────────────────────────
+  Future<String> uploadImageToR2(String filePath) async {
+    final String trimmed = filePath.trim();
+    _log('📤 Uploading to R2: ${_fileName(trimmed)}');
+
+    final FormData formData = FormData.fromMap(<String, dynamic>{
+      'file': await MultipartFile.fromFile(
+        trimmed,
+        filename: _fileName(trimmed),
+      ),
+      'folder': 'posts',
+    });
+
+    try {
+      final Response<dynamic> response = await _client.dio.post<dynamic>(
+        ApiEndpoints.uploadImage, // POST /api/admin/upload
+        data: formData,
+        options: Options(contentType: 'multipart/form-data'),
+      );
+
+      _logResponse(response.statusCode, response.data);
+
+      // Server returns { "url": "https://..." }
+      final dynamic body = response.data;
+      if (body is Map<String, dynamic> && body['url'] is String) {
+        return body['url'] as String;
+      }
+      throw ApiException(
+        type: ApiErrorType.unknown,
+        statusCode: response.statusCode ?? 0,
+        message: 'Upload response missing "url" field. Got: $body',
+      );
+    } on DioException catch (e) {
+      _logError(e);
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // STEP 2 — Upload all images to R2 first, then POST the post as JSON.
+  //
+  // Endpoint : POST /api/posts  (ApiEndpoints.createPost)
+  // Request  : application/json
+  // Body     : { title, description, price, category_id, images: ["https://..."] }
+  //
+  // Vue equivalent (saveCreate):
+  //   await postsApi.adminCreate({ ...form, images: imageUrls })
+  // ───────────────────────────────────────────────────────────────────────────
+  Future<CreatePostResult> createPost({
+    required String title,
+    required String description,
+    required double price,
+    required int categoryId,
+    String status = 'active',
+    String? location,
+    double? latitude,
+    double? longitude,
+    String? condition,
+    List<String> imagePaths = const <String>[],
+  }) async {
+    // ── Mock path ──────────────────────────────────────────────────────────
+    if (AppEnvironment.useMockApi) {
+      return CreatePostResult(
+        post: <String, dynamic>{
+          'id': 'mock-created-post',
+          'title': title.trim(),
+          'description': description.trim(),
+          'price': price,
+          'category_id': categoryId,
+          'status': status,
+          'location': location,
+          'latitude': latitude,
+          'longitude': longitude,
+          'condition': condition,
+          'images': jsonEncode(imagePaths), // ✅ fixed
+        },
+        uploadedUrls: imagePaths,
+      );
+    }
+
+    // ── Step 1: upload each image to R2 ────────────────────────────────────
+    final List<String> imageUrls = <String>[];
+    for (final String path in imagePaths) {
+      if (path.trim().isEmpty) continue;
+      final String url = await uploadImageToR2(path);
+      imageUrls.add(url);
+      _log('✅ R2 URL: $url');
+    }
+
+    // ── Step 2: build JSON body ─────────────────────────────────────────────
+    final Map<String, dynamic> payload = <String, dynamic>{
+      'title':       title.trim(),
+      'description': description.trim(),
+      'price':       price,
+      'status':      status.trim().isEmpty ? 'active' : status.trim(),
+      'category_id': categoryId,
+      'images':      jsonEncode(imageUrls), // ✅ fixed — stores as "[\"url1\",\"url2\"]"
+      if (location != null && location.trim().isNotEmpty)
+        'location': location.trim(),
+      if (latitude  != null) 'latitude':  latitude,
+      if (longitude != null) 'longitude': longitude,
+      if (condition != null && condition.trim().isNotEmpty)
+        'condition': condition.trim(),
+    };
+
+    _logRequest('POST', ApiEndpoints.createPost, payload);
+
+    // ── Step 3: POST as application/json ────────────────────────────────────
+    try {
+      final dynamic response = await _client.post<dynamic>(
+        ApiEndpoints.createPost,
+        data: payload,
+        options: Options(
+          headers: <String, String>{'Content-Type': 'application/json'},
+        ),
+      );
+
+      _logResponse(200, response);
+      return CreatePostResult(
+        post: _extractMap(response),
+        uploadedUrls: imageUrls,
+      );
+    } on DioException catch (e) {
+      _logError(e);
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // Upload limits discovery
+  // ───────────────────────────────────────────────────────────────────────────
 
   Future<PostUploadLimits?> fetchUploadLimits() async {
     if (AppEnvironment.useMockApi) {
@@ -39,9 +195,7 @@ class CreatePostApiService {
       ),
     ];
 
-    for (final ({String method, String path, Map<String, dynamic>? query})
-        attempt
-        in attempts) {
+    for (final attempt in attempts) {
       try {
         final Response<dynamic> response = await _client.dio.request<dynamic>(
           attempt.path,
@@ -52,109 +206,95 @@ class CreatePostApiService {
           responseData: response.data,
           responseHeaders: response.headers.map,
         );
-        if (parsed != null && parsed.hasAny) {
-          return parsed;
-        }
-      } catch (_) {
-        // Ignore discovery failures and keep defaults.
-      }
+        if (parsed != null && parsed.hasAny) return parsed;
+      } catch (_) {/* ignore */}
     }
     return null;
   }
 
   PostUploadLimits? extractUploadLimitsFromDioError(DioException error) {
     final Response<dynamic>? response = error.response;
-    if (response == null) {
-      return null;
-    }
+    if (response == null) return null;
     return _extractUploadLimits(
       responseData: response.data,
       responseHeaders: response.headers.map,
     );
   }
 
-  Future<Map<String, dynamic>> createPost({
-    required String title,
-    required String description,
-    required double price,
-    required int categoryId,
-    String status = 'active',
-    String? location,
-    double? latitude,
-    double? longitude,
-    String? condition,
-    List<String> imagePaths = const <String>[],
-  }) async {
-    if (AppEnvironment.useMockApi) {
-      return <String, dynamic>{
-        'id': 'mock-created-post',
-        'title': title.trim(),
-        'description': description.trim(),
-        'price': price,
-        'category_id': categoryId,
-        'status': status,
-        'location': location,
-        'latitude': latitude,
-        'longitude': longitude,
-        'condition': condition,
-        'images': imagePaths,
-      };
-    }
+  // ───────────────────────────────────────────────────────────────────────────
+  // Logging helpers
+  // ───────────────────────────────────────────────────────────────────────────
 
-    final Map<String, dynamic> payload = <String, dynamic>{
-      'title': title.trim(),
-      'description': description.trim(),
-      'price': price,
-      'status': status.trim().isEmpty ? 'active' : status.trim(),
-      'category_id': categoryId,
-      if (location case final String value when value.trim().isNotEmpty)
-        'location': value.trim(),
-      if (latitude case final double value) 'latitude': value,
-      if (longitude case final double value) 'longitude': value,
-      if (condition case final String value when value.trim().isNotEmpty)
-        'condition': value.trim(),
-    };
+  void _log(String msg) => print('[CreatePostApiService] $msg');
 
+  void _logRequest(String method, String path, Map<String, dynamic> body) {
+    print('');
+    print('┌─────────────────────────────────────────────');
+    print('│ [CreatePostApiService] ➡ REQUEST');
+    print('│ $method $path');
+    print('│ Content-Type : application/json');
+    print('│ Body:');
+    _prettyPrintMap(body);
+    print('└─────────────────────────────────────────────');
+  }
+
+  void _logResponse(int? statusCode, dynamic data) {
+    print('');
+    print('┌─────────────────────────────────────────────');
+    print('│ [CreatePostApiService] ✅ RESPONSE $statusCode');
+    print('│ Body:');
     try {
-      if (imagePaths.isNotEmpty) {
-        final FormData formData = FormData();
-        for (final MapEntry<String, dynamic> entry in payload.entries) {
-          formData.fields.add(MapEntry(entry.key, entry.value.toString()));
-        }
-
-        for (final String path in imagePaths) {
-          final String trimmed = path.trim();
-          if (trimmed.isEmpty) {
-            continue;
-          }
-          formData.files.add(
-            MapEntry(
-              'images',
-              await MultipartFile.fromFile(
-                trimmed,
-                filename: _fileName(trimmed),
-              ),
-            ),
-          );
-        }
-
-        final Response<dynamic> response = await _client.dio.post<dynamic>(
-          ApiEndpoints.createPost,
-          data: formData,
-          options: Options(contentType: 'multipart/form-data'),
-        );
-        return _extractMap(response.data);
+      final String pretty = const JsonEncoder.withIndent('  ').convert(data);
+      for (final String line in pretty.split('\n')) {
+        print('│   $line');
       }
+    } catch (_) {
+      print('│   $data');
+    }
+    print('└─────────────────────────────────────────────');
+  }
 
-      final dynamic response = await _client.post<dynamic>(
-        ApiEndpoints.createPost,
-        data: payload,
-      );
-      return _extractMap(response);
-    } on DioException catch (error) {
-      throw ApiException.fromDioException(error);
+  void _logError(DioException error) {
+    print('');
+    print('┌─────────────────────────────────────────────');
+    print('│ [CreatePostApiService] ❌ ERROR');
+    print('│ Status  : ${error.response?.statusCode}');
+    print('│ Type    : ${error.type}');
+    final dynamic rawData = error.response?.data;
+    if (rawData != null) {
+      print('│ Response body (raw)   : $rawData');
+      print('│ Response body (pretty):');
+      try {
+        final dynamic decoded =
+            rawData is String ? jsonDecode(rawData) : rawData;
+        final String pretty =
+            const JsonEncoder.withIndent('  ').convert(decoded);
+        for (final String line in pretty.split('\n')) {
+          print('│   $line');
+        }
+      } catch (_) {
+        print('│   (not valid JSON)');
+      }
+    }
+    print('│ Request URL    : ${error.requestOptions.uri}');
+    print('│ Request method : ${error.requestOptions.method}');
+    print('└─────────────────────────────────────────────');
+  }
+
+  void _prettyPrintMap(Map<String, dynamic> map) {
+    try {
+      final String pretty = const JsonEncoder.withIndent('  ').convert(map);
+      for (final String line in pretty.split('\n')) {
+        print('│   $line');
+      }
+    } catch (_) {
+      map.forEach((String k, dynamic v) => print('│   $k: $v'));
     }
   }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // Private helpers
+  // ───────────────────────────────────────────────────────────────────────────
 
   Map<String, dynamic> _extractMap(dynamic response) {
     if (response is Map<String, dynamic>) {
@@ -167,60 +307,39 @@ class CreatePostApiService {
   }
 
   String _fileName(String path) {
-    final int slashIndex = path.lastIndexOf('/');
-    if (slashIndex < 0 || slashIndex == path.length - 1) {
-      return 'image.jpg';
-    }
-    return path.substring(slashIndex + 1);
+    final int i = path.lastIndexOf('/');
+    if (i < 0 || i == path.length - 1) return 'image.jpg';
+    return path.substring(i + 1);
   }
+
+  // ── Upload limit parsing ──────────────────────────────────────────────────
 
   PostUploadLimits? _extractUploadLimits({
     required dynamic responseData,
     required Map<String, List<String>> responseHeaders,
   }) {
-    final int? perImageFromBody = _findLimitBytesInPayload(
-      responseData,
-      keys: _perImageLimitKeys,
-    );
-    final int? totalFromBody = _findLimitBytesInPayload(
-      responseData,
-      keys: _totalLimitKeys,
-    );
-    final int? perImageFromHeaders = _findLimitBytesInHeaders(
-      responseHeaders,
-      keys: _perImageLimitKeys,
-    );
-    final int? totalFromHeaders = _findLimitBytesInHeaders(
-      responseHeaders,
-      keys: _totalLimitKeys,
-    );
+    int? inferredPerImage =
+        _findLimitBytesInPayload(responseData, keys: _perImageLimitKeys) ??
+        _findLimitBytesInHeaders(responseHeaders, keys: _perImageLimitKeys);
+    int? inferredTotal =
+        _findLimitBytesInPayload(responseData, keys: _totalLimitKeys) ??
+        _findLimitBytesInHeaders(responseHeaders, keys: _totalLimitKeys);
 
-    int? inferredPerImage = perImageFromBody ?? perImageFromHeaders;
-    int? inferredTotal = totalFromBody ?? totalFromHeaders;
-
-    // Fallback: infer from free-form response text when explicit keys are absent.
     if (inferredPerImage == null || inferredTotal == null) {
       final String text = _flattenText(responseData).toLowerCase();
-      final int? fallbackBytes = _parseBytes(text);
-      if (fallbackBytes != null) {
-        if (text.contains('image') ||
-            text.contains('file') ||
-            text.contains('each')) {
-          inferredPerImage ??= fallbackBytes;
-        } else if (text.contains('request') ||
-            text.contains('payload') ||
-            text.contains('total') ||
-            text.contains('body') ||
-            text.contains('upload')) {
-          inferredTotal ??= fallbackBytes;
+      final int? fallback = _parseBytes(text);
+      if (fallback != null) {
+        if (text.contains('image') || text.contains('file') || text.contains('each')) {
+          inferredPerImage ??= fallback;
+        } else if (text.contains('request') || text.contains('payload') ||
+                   text.contains('total')   || text.contains('body')    ||
+                   text.contains('upload')) {
+          inferredTotal ??= fallback;
         }
       }
     }
 
-    if (inferredPerImage == null && inferredTotal == null) {
-      return null;
-    }
-
+    if (inferredPerImage == null && inferredTotal == null) return null;
     return PostUploadLimits(
       perImageBytes: inferredPerImage,
       totalBytes: inferredTotal,
@@ -231,16 +350,12 @@ class CreatePostApiService {
     Map<String, List<String>> headers, {
     required Set<String> keys,
   }) {
-    for (final MapEntry<String, List<String>> entry in headers.entries) {
+    for (final entry in headers.entries) {
       final String key = _normalizeKey(entry.key);
-      if (!keys.contains(key)) {
-        continue;
-      }
-      for (final String value in entry.value) {
-        final int? parsed = _parseBytes(value, keyHint: key);
-        if (parsed != null && parsed > 0) {
-          return parsed;
-        }
+      if (!keys.contains(key)) continue;
+      for (final String v in entry.value) {
+        final int? p = _parseBytes(v, keyHint: key);
+        if (p != null && p > 0) return p;
       }
     }
     return null;
@@ -251,179 +366,103 @@ class CreatePostApiService {
     required Set<String> keys,
     int depth = 0,
   }) {
-    if (payload == null || depth > 5) {
-      return null;
-    }
-
-    final dynamic normalizedPayload = _tryDecodeJsonString(payload);
-
-    if (normalizedPayload is Map) {
-      for (final MapEntry<dynamic, dynamic> entry
-          in normalizedPayload.entries) {
+    if (payload == null || depth > 5) return null;
+    final dynamic n = _tryDecodeJsonString(payload);
+    if (n is Map) {
+      for (final entry in n.entries) {
         final String key = _normalizeKey(entry.key.toString());
-        final dynamic value = entry.value;
         if (keys.contains(key)) {
-          final int? parsed = _parseBytes(value, keyHint: key);
-          if (parsed != null && parsed > 0) {
-            return parsed;
-          }
+          final int? p = _parseBytes(entry.value, keyHint: key);
+          if (p != null && p > 0) return p;
         }
-        final int? nested = _findLimitBytesInPayload(
-          value,
-          keys: keys,
-          depth: depth + 1,
-        );
-        if (nested != null && nested > 0) {
-          return nested;
-        }
+        final int? nested =
+            _findLimitBytesInPayload(entry.value, keys: keys, depth: depth + 1);
+        if (nested != null && nested > 0) return nested;
       }
       return null;
     }
-
-    if (normalizedPayload is List) {
-      for (final dynamic item in normalizedPayload) {
-        final int? nested = _findLimitBytesInPayload(
-          item,
-          keys: keys,
-          depth: depth + 1,
-        );
-        if (nested != null && nested > 0) {
-          return nested;
-        }
+    if (n is List) {
+      for (final item in n) {
+        final int? nested =
+            _findLimitBytesInPayload(item, keys: keys, depth: depth + 1);
+        if (nested != null && nested > 0) return nested;
       }
-      return null;
     }
-
     return null;
   }
 
   dynamic _tryDecodeJsonString(dynamic value) {
-    if (value is! String) {
-      return value;
-    }
-    final String trimmed = value.trim();
-    if (trimmed.isEmpty) {
-      return value;
-    }
-    if (!((trimmed.startsWith('{') && trimmed.endsWith('}')) ||
-        (trimmed.startsWith('[') && trimmed.endsWith(']')))) {
-      return value;
-    }
+    if (value is! String) return value;
+    final String t = value.trim();
+    if (t.isEmpty) return value;
+    if (!((t.startsWith('{') && t.endsWith('}')) ||
+          (t.startsWith('[') && t.endsWith(']')))) return value;
     try {
-      return jsonDecode(trimmed);
+      return jsonDecode(t);
     } catch (_) {
       return value;
     }
   }
 
   String _normalizeKey(String value) {
-    final String lower = value.toLowerCase();
-    final StringBuffer buffer = StringBuffer();
-    for (int i = 0; i < lower.length; i++) {
-      final int code = lower.codeUnitAt(i);
-      final bool isNumber = code >= 48 && code <= 57;
-      final bool isLetter = code >= 97 && code <= 122;
-      if (isNumber || isLetter) {
-        buffer.writeCharCode(code);
+    final StringBuffer b = StringBuffer();
+    for (final int code in value.toLowerCase().codeUnits) {
+      if ((code >= 48 && code <= 57) || (code >= 97 && code <= 122)) {
+        b.writeCharCode(code);
       }
     }
-    return buffer.toString();
+    return b.toString();
   }
 
   int? _parseBytes(dynamic value, {String? keyHint}) {
-    if (value == null) {
-      return null;
-    }
-
-    if (value is num) {
-      return _scaleByKeyHint(value.toDouble(), keyHint: keyHint);
-    }
-
+    if (value == null) return null;
+    if (value is num) return _scaleByKeyHint(value.toDouble(), keyHint: keyHint);
     final String text = value.toString().trim();
-    if (text.isEmpty) {
-      return null;
+    if (text.isEmpty) return null;
+    final ({double amount, String unit})? sized = _extractSizedValue(text);
+    if (sized != null) {
+      if (sized.amount <= 0) return null;
+      if (sized.unit.startsWith('g')) return (sized.amount * 1024 * 1024 * 1024).round();
+      if (sized.unit.startsWith('m')) return (sized.amount * 1024 * 1024).round();
+      if (sized.unit.startsWith('k')) return (sized.amount * 1024).round();
+      return sized.amount.round();
     }
-
-    final ({double amount, String unit})? sizedValue = _extractSizedValue(text);
-    if (sizedValue != null) {
-      final double amount = sizedValue.amount;
-      final String unit = sizedValue.unit;
-      if (amount <= 0) {
-        return null;
-      }
-      if (unit.startsWith('g')) {
-        return (amount * 1024 * 1024 * 1024).round();
-      }
-      if (unit.startsWith('m')) {
-        return (amount * 1024 * 1024).round();
-      }
-      if (unit.startsWith('k')) {
-        return (amount * 1024).round();
-      }
-      return amount.round();
-    }
-
-    final double? number = double.tryParse(text);
-    if (number == null || number <= 0) {
-      return null;
-    }
-    return _scaleByKeyHint(number, keyHint: keyHint);
+    final double? n = double.tryParse(text);
+    if (n == null || n <= 0) return null;
+    return _scaleByKeyHint(n, keyHint: keyHint);
   }
 
   ({double amount, String unit})? _extractSizedValue(String text) {
     final List<String> tokens = _tokenize(text);
     for (int i = 0; i < tokens.length; i++) {
       final String token = tokens[i];
-      if (token.isEmpty) {
-        continue;
+      if (token.isEmpty) continue;
+      final ({String numberPart, String unitPart}) s = _splitToken(token);
+      if (s.numberPart.isEmpty) continue;
+      final double? amount = double.tryParse(s.numberPart);
+      if (amount == null || amount <= 0) continue;
+      String unit = s.unitPart;
+      if (unit.isEmpty && i + 1 < tokens.length && _isSupportedUnit(tokens[i + 1])) {
+        unit = tokens[i + 1];
       }
-
-      final ({String numberPart, String unitPart}) split = _splitToken(token);
-      if (split.numberPart.isEmpty) {
-        continue;
-      }
-
-      final double? amount = double.tryParse(split.numberPart);
-      if (amount == null || amount <= 0) {
-        continue;
-      }
-
-      String unit = split.unitPart;
-      if (unit.isEmpty && i + 1 < tokens.length) {
-        final String next = tokens[i + 1];
-        if (_isSupportedUnit(next)) {
-          unit = next;
-        }
-      }
-
-      if (_isSupportedUnit(unit)) {
-        return (amount: amount, unit: unit);
-      }
+      if (_isSupportedUnit(unit)) return (amount: amount, unit: unit);
     }
     return null;
   }
 
   List<String> _tokenize(String raw) {
-    final String lower = raw.toLowerCase();
     final List<String> tokens = <String>[];
-    final StringBuffer current = StringBuffer();
-
+    final StringBuffer cur = StringBuffer();
     void flush() {
-      if (current.isEmpty) {
-        return;
+      if (cur.isNotEmpty) {
+        tokens.add(cur.toString());
+        cur.clear();
       }
-      tokens.add(current.toString());
-      current.clear();
     }
-
-    for (int i = 0; i < lower.length; i++) {
-      final String char = lower[i];
-      final bool isLetter =
-          char.codeUnitAt(0) >= 97 && char.codeUnitAt(0) <= 122;
-      final bool isDigit = char.codeUnitAt(0) >= 48 && char.codeUnitAt(0) <= 57;
-      final bool isDot = char == '.';
-      if (isLetter || isDigit || isDot) {
-        current.write(char);
+    for (final String char in raw.toLowerCase().split('')) {
+      final int code = char.codeUnitAt(0);
+      if ((code >= 97 && code <= 122) || (code >= 48 && code <= 57) || code == 46) {
+        cur.write(char);
       } else {
         flush();
       }
@@ -433,118 +472,63 @@ class CreatePostApiService {
   }
 
   ({String numberPart, String unitPart}) _splitToken(String token) {
-    int index = 0;
-    while (index < token.length) {
-      final int code = token.codeUnitAt(index);
-      final bool isDigit = code >= 48 && code <= 57;
-      final bool isDot = code == 46;
-      if (!isDigit && !isDot) {
-        break;
-      }
-      index++;
+    int i = 0;
+    while (i < token.length) {
+      final int code = token.codeUnitAt(i);
+      if ((code < 48 || code > 57) && code != 46) break;
+      i++;
     }
-
-    return (
-      numberPart: token.substring(0, index),
-      unitPart: token.substring(index),
-    );
+    return (numberPart: token.substring(0, i), unitPart: token.substring(i));
   }
 
-  bool _isSupportedUnit(String unit) {
-    return unit == 'gb' ||
-        unit == 'gib' ||
-        unit == 'mb' ||
-        unit == 'mib' ||
-        unit == 'kb' ||
-        unit == 'kib' ||
-        unit == 'byte' ||
-        unit == 'bytes' ||
-        unit == 'b';
-  }
+  bool _isSupportedUnit(String u) =>
+      u == 'gb' || u == 'gib' || u == 'mb' || u == 'mib' ||
+      u == 'kb' || u == 'kib' || u == 'byte' || u == 'bytes' || u == 'b';
 
   int? _scaleByKeyHint(double value, {String? keyHint}) {
-    if (value <= 0) {
-      return null;
-    }
-
-    final String hint = (keyHint ?? '').toLowerCase();
-    if (hint.contains('gb') || hint.contains('gib')) {
-      return (value * 1024 * 1024 * 1024).round();
-    }
-    if (hint.contains('mb') || hint.contains('mib')) {
-      return (value * 1024 * 1024).round();
-    }
-    if (hint.contains('kb') || hint.contains('kib')) {
-      return (value * 1024).round();
-    }
-
+    if (value <= 0) return null;
+    final String h = (keyHint ?? '').toLowerCase();
+    if (h.contains('gb') || h.contains('gib')) return (value * 1024 * 1024 * 1024).round();
+    if (h.contains('mb') || h.contains('mib')) return (value * 1024 * 1024).round();
+    if (h.contains('kb') || h.contains('kib')) return (value * 1024).round();
     return value.round();
   }
 
   String _flattenText(dynamic data, {int depth = 0}) {
-    if (data == null || depth > 4) {
-      return '';
-    }
-    if (data is String) {
-      return data;
-    }
-    if (data is num || data is bool) {
-      return data.toString();
-    }
+    if (data == null || depth > 4) return '';
+    if (data is String) return data;
+    if (data is num || data is bool) return data.toString();
     if (data is Map) {
       return data.values
-          .map((dynamic item) => _flattenText(item, depth: depth + 1))
-          .where((String value) => value.trim().isNotEmpty)
+          .map((dynamic i) => _flattenText(i, depth: depth + 1))
+          .where((String v) => v.trim().isNotEmpty)
           .join(' ');
     }
     if (data is List) {
       return data
-          .map((dynamic item) => _flattenText(item, depth: depth + 1))
-          .where((String value) => value.trim().isNotEmpty)
+          .map((dynamic i) => _flattenText(i, depth: depth + 1))
+          .where((String v) => v.trim().isNotEmpty)
           .join(' ');
     }
     return data.toString();
   }
 
   static const Set<String> _perImageLimitKeys = <String>{
-    'maximagesize',
-    'maximagesizebytes',
-    'maximagesizemb',
-    'maxfilesize',
-    'maxfilesizebytes',
-    'maxfilesizemb',
-    'imagesizelimit',
-    'imagesizelimitbytes',
-    'imagesizelimitmb',
-    'filesizelimit',
-    'filesizelimitbytes',
-    'filesizelimitmb',
-    'maximageuploadsize',
-    'maximageuploadsizebytes',
-    'maximageuploadsizemb',
-    'imageuploadlimit',
-    'imageuploadlimitbytes',
-    'imagemaxsize',
+    'maximagesize', 'maximagesizebytes', 'maximagesizemb',
+    'maxfilesize', 'maxfilesizebytes', 'maxfilesizemb',
+    'imagesizelimit', 'imagesizelimitbytes', 'imagesizelimitmb',
+    'filesizelimit', 'filesizelimitbytes', 'filesizelimitmb',
+    'maximageuploadsize', 'maximageuploadsizebytes', 'maximageuploadsizemb',
+    'imageuploadlimit', 'imageuploadlimitbytes', 'imagemaxsize',
   };
 
   static const Set<String> _totalLimitKeys = <String>{
-    'maxtotaluploadsize',
-    'maxtotaluploadsizebytes',
-    'maxtotaluploadsizemb',
-    'maxuploadsize',
-    'maxuploadsizebytes',
-    'maxuploadsizemb',
-    'maxrequestsize',
-    'maxrequestsizebytes',
-    'maxrequestsizemb',
-    'maxbodysize',
-    'maxbodysizebytes',
-    'maxbodysizemb',
-    'requestsizelimit',
-    'requestsizelimitbytes',
-    'uploadsizelimit',
-    'uploadsizelimitbytes',
-    'contentlengthlimit',
-    'payloadsizelimit',
+    'maxtotaluploadsize', 'maxtotaluploadsizebytes', 'maxtotaluploadsizemb',
+    'maxuploadsize', 'maxuploadsizebytes', 'maxuploadsizemb',
+    'maxrequestsize', 'maxrequestsizebytes', 'maxrequestsizemb',
+    'maxbodysize', 'maxbodysizebytes', 'maxbodysizemb',
+    'requestsizelimit', 'requestsizelimitbytes',
+    'uploadsizelimit', 'uploadsizelimitbytes',
+    'contentlengthlimit', 'payloadsizelimit',
   };
 }

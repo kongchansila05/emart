@@ -60,3 +60,6 @@ android   1:597563194177:android:652defe33cc2e9eb487fc0
 ios       1:597563194177:ios:ee47a8d2f7f12242487fc0
 macos     1:597563194177:ios:ee47a8d2f7f12242487fc0
 windows   1:597563194177:web:c45cea430c41fc3f487fc0
+
+
+keytool -list -v -alias androiddebugkey -keystore "$env:USERPROFILE\.android\debug.keystore" -storepass android

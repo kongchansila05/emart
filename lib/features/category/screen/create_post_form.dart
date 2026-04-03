@@ -3,13 +3,13 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:EMART24/core/network/api_exception.dart';
 import 'package:EMART24/core/theme/app_color.dart';
-import 'package:EMART24/core/utils/post_location_requirement.dart';
 import 'package:EMART24/core/utils/price_input_utils.dart';
 import 'package:EMART24/features/sell/data/remote/create_post_api_service.dart';
+import 'package:EMART24/features/sell/presentation/location_picker_card.dart';
+import 'package:EMART24/features/sell/presentation/location_picker_screen.dart';
 import 'package:EMART24/shared/widgets/forms/form_layout.dart';
 
 class _SelectOption<T> {
@@ -52,13 +52,18 @@ class _CreatePostFormState extends State<CreatePostForm> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _priceController = TextEditingController();
-  final TextEditingController _locationController = TextEditingController();
 
   final List<XFile> _pickedImages = <XFile>[];
   int? _resolvedCategoryId;
 
+  // ── Location state ─────────────────────────────────────────────────────────
+  double? _pickedLatitude;
+  double? _pickedLongitude;
+  String? _pickedAddress;
+  String? _pickedCity;
+  bool _locationTouched = false;
+
   bool _isSaving = false;
-  bool _isResolvingLocation = false;
   String? _imageErrorText;
   AutovalidateMode _autoValidateMode = AutovalidateMode.disabled;
 
@@ -73,6 +78,7 @@ class _CreatePostFormState extends State<CreatePostForm> {
   static const int _defaultMaxTotalImageUploadMb = 6;
   static const int _fallback413PerImageLimitMb = 1;
   static const int _fallback413TotalLimitMb = 3;
+
   static const List<_SelectOption<String>> _statusOptions =
       <_SelectOption<String>>[
         _SelectOption<String>(value: 'active', label: 'Active'),
@@ -91,10 +97,12 @@ class _CreatePostFormState extends State<CreatePostForm> {
       _buildSelectMenuItems(_statusOptions);
   static final List<DropdownMenuItem<String>> _conditionDropdownItems =
       _buildSelectMenuItems(_conditionOptions);
+
   int _maxImageSizeBytes = _defaultMaxImageSizeMb * _bytesPerMb;
   int _maxTotalImageUploadBytes = _defaultMaxTotalImageUploadMb * _bytesPerMb;
 
-  bool get _isBusy => _isSaving || _isResolvingLocation;
+  bool get _isBusy => _isSaving;
+  bool get _hasLocation => _pickedLatitude != null && _pickedLongitude != null;
   String get _maxImageSizeMbLabel => _formatMbLabel(_maxImageSizeBytes);
   String get _maxTotalImageUploadMbLabel =>
       _formatMbLabel(_maxTotalImageUploadBytes);
@@ -111,9 +119,26 @@ class _CreatePostFormState extends State<CreatePostForm> {
     _titleController.dispose();
     _descriptionController.dispose();
     _priceController.dispose();
-    _locationController.dispose();
     super.dispose();
   }
+
+  // ── Location ───────────────────────────────────────────────────────────────
+
+  void _onLocationPicked(LocationPickerResult result) {
+    final List<String> parts =
+        (result.address ?? '').split(',').map((s) => s.trim()).toList();
+    setState(() {
+      _pickedLatitude = result.latitude;
+      _pickedLongitude = result.longitude;
+      _pickedAddress = result.address;
+      _pickedCity = parts.length >= 2
+          ? '${parts[parts.length - 2]}, ${parts.last}'
+          : result.address;
+      _locationTouched = true;
+    });
+  }
+
+  // ── Images ─────────────────────────────────────────────────────────────────
 
   Future<void> _pickImages() async {
     try {
@@ -122,25 +147,16 @@ class _CreatePostFormState extends State<CreatePostForm> {
         maxWidth: 1280,
         maxHeight: 1280,
       );
-      if (!mounted || images.isEmpty) {
-        return;
-      }
-
-      final List<XFile> validImages = await _filterImagesBySize(
-        images,
-        notifyOnInvalid: true,
-      );
-      if (!mounted || validImages.isEmpty) {
-        return;
-      }
-
+      if (!mounted || images.isEmpty) return;
+      final List<XFile> valid =
+          await _filterImagesBySize(images, notifyOnInvalid: true);
+      if (!mounted || valid.isEmpty) return;
       final Map<String, XFile> deduped = <String, XFile>{
-        for (final XFile file in _pickedImages) file.path: file,
+        for (final XFile f in _pickedImages) f.path: f,
       };
-      for (final XFile file in validImages) {
-        deduped[file.path] = file;
+      for (final XFile f in valid) {
+        deduped[f.path] = f;
       }
-
       setState(() {
         _pickedImages
           ..clear()
@@ -156,126 +172,81 @@ class _CreatePostFormState extends State<CreatePostForm> {
     List<XFile> files, {
     bool notifyOnInvalid = false,
   }) async {
-    final List<XFile> validFiles = <XFile>[];
-    int invalidCount = 0;
-
-    for (final XFile file in files) {
+    final List<XFile> valid = <XFile>[];
+    int invalid = 0;
+    for (final XFile f in files) {
       try {
-        final int size = await file.length();
-        if (size <= _maxImageSizeBytes) {
-          validFiles.add(file);
+        if (await f.length() <= _maxImageSizeBytes) {
+          valid.add(f);
           continue;
         }
-      } catch (_) {
-        // Treat unreadable files as invalid so we avoid uploading bad files.
-      }
-      invalidCount++;
+      } catch (_) {}
+      invalid++;
     }
-
-    if (notifyOnInvalid && invalidCount > 0) {
+    if (notifyOnInvalid && invalid > 0) {
       _showSnack(
-        '$invalidCount image(s) skipped. Each image must be $_maxImageSizeMbLabel MB or smaller.',
-      );
+          '$invalid image(s) skipped — max $_maxImageSizeMbLabel MB each.');
     }
-
-    return validFiles;
+    return valid;
   }
 
   Future<int> _totalImageBytes(Iterable<XFile> files) async {
-    int totalBytes = 0;
-    for (final XFile file in files) {
+    int total = 0;
+    for (final XFile f in files) {
       try {
-        totalBytes += await file.length();
-      } catch (_) {
-        // Ignore unreadable files; size validation already handles these.
-      }
+        total += await f.length();
+      } catch (_) {}
     }
-    return totalBytes;
+    return total;
   }
 
-  Future<void> _submit() async {
-    if (_isSaving) {
-      return;
-    }
+  // ── Submit ─────────────────────────────────────────────────────────────────
 
+  Future<void> _submit() async {
+    if (_isSaving) return;
     final int? categoryId = _resolvedCategoryId;
     if (categoryId == null) {
-      _showSnack(
-        'Missing selected category. Please choose from category page.',
-      );
+      _showSnack('Missing category. Please go back and choose one.');
       return;
     }
-
-    final bool hasPickedImages = _pickedImages.isNotEmpty;
+    final bool hasImages = _pickedImages.isNotEmpty;
     setState(() {
       _autoValidateMode = AutovalidateMode.onUserInteraction;
-      _imageErrorText = hasPickedImages ? null : 'Image is required';
+      _imageErrorText = hasImages ? null : 'Image is required';
+      _locationTouched = true;
     });
-
-    final bool isFormValid = _formKey.currentState?.validate() ?? false;
-    if (!isFormValid || !hasPickedImages) {
-      return;
-    }
-
+    final bool formValid = _formKey.currentState?.validate() ?? false;
+    if (!formValid || !hasImages) return;
     final double? price = PriceInputUtils.tryParseNumber(_priceController.text);
     if (price == null || price <= 0) {
       _showSnack('Please enter a valid price.');
       return;
     }
-
-    final Position? position = await _resolveRequiredLocation(
-      openAppSettingsOnFailure: false,
-      openLocationSettingsOnFailure: false,
-    );
-    if (position == null) {
+    if (!_hasLocation) {
+      _showSnack('Please set a location on the map.');
       return;
     }
-
-    final double latitude = position.latitude;
-    final double longitude = position.longitude;
-    final String normalizedLocation = _locationLabel(
-      latitude: latitude,
-      longitude: longitude,
-    );
-
-    final List<XFile> validPickedImages = await _filterImagesBySize(
-      _pickedImages,
-    );
-    if (!mounted) {
-      return;
-    }
-    if (validPickedImages.length != _pickedImages.length) {
+    final List<XFile> validImages = await _filterImagesBySize(_pickedImages);
+    if (!mounted) return;
+    if (validImages.length != _pickedImages.length) {
       setState(() {
         _pickedImages
           ..clear()
-          ..addAll(validPickedImages);
+          ..addAll(validImages);
       });
-      _showSnack(
-        'Some images were removed because they are larger than $_maxImageSizeMbLabel MB.',
-      );
+      _showSnack('Some images removed — max $_maxImageSizeMbLabel MB each.');
     }
-    if (validPickedImages.isEmpty) {
-      setState(() {
-        _imageErrorText = 'Image is required';
-      });
+    if (validImages.isEmpty) {
+      setState(() => _imageErrorText = 'Image is required');
       return;
     }
-
-    final int totalImageBytes = await _totalImageBytes(validPickedImages);
-    if (!mounted) {
+    final int totalBytes = await _totalImageBytes(validImages);
+    if (!mounted) return;
+    if (totalBytes > _maxTotalImageUploadBytes) {
+      _showSnack('Total too large — keep under $_maxTotalImageUploadMbLabel MB.');
       return;
     }
-    if (totalImageBytes > _maxTotalImageUploadBytes) {
-      _showSnack(
-        'Images are too large to upload. Keep total under $_maxTotalImageUploadMbLabel MB.',
-      );
-      return;
-    }
-
-    setState(() {
-      _isSaving = true;
-    });
-
+    setState(() => _isSaving = true);
     try {
       await _createPostApiService.createPost(
         title: _titleController.text.trim(),
@@ -283,44 +254,31 @@ class _CreatePostFormState extends State<CreatePostForm> {
         price: price,
         categoryId: categoryId,
         status: _selectedStatus,
-        location: normalizedLocation,
-        latitude: latitude,
-        longitude: longitude,
+        location: _pickedAddress,
+        latitude: _pickedLatitude,
+        longitude: _pickedLongitude,
         condition: _selectedCondition,
-        imagePaths: validPickedImages.map((item) => item.path).toList(),
+        imagePaths: validImages.map((f) => f.path).toList(),
       );
-
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
       _showSnack('Post created successfully.');
       _resetFormToDefaults();
     } on ApiException catch (error) {
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
       String message = error.message;
       if (error.statusCode == 413) {
-        final bool appliedFromApi = _applyUploadLimitsFromApiError(error);
-        if (!appliedFromApi) {
-          _applyFallback413Limits();
-        }
+        final bool applied = _applyUploadLimitsFromApiError(error);
+        if (!applied) _applyFallback413Limits();
         message =
-            'Upload is too large. Try images up to $_maxImageSizeMbLabel MB each '
+            'Upload too large. Try up to $_maxImageSizeMbLabel MB each '
             '($_maxTotalImageUploadMbLabel MB total), then submit again.';
       }
       _showSnack(message);
     } catch (_) {
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
       _showSnack('Failed to create post.');
     } finally {
-      if (mounted) {
-        setState(() {
-          _isSaving = false;
-        });
-      }
+      if (mounted) setState(() => _isSaving = false);
     }
   }
 
@@ -328,7 +286,11 @@ class _CreatePostFormState extends State<CreatePostForm> {
     _titleController.clear();
     _descriptionController.clear();
     _priceController.clear();
-    _locationController.clear();
+    _pickedLatitude = null;
+    _pickedLongitude = null;
+    _pickedAddress = null;
+    _pickedCity = null;
+    _locationTouched = false;
     _selectedStatus = 'active';
     _selectedCondition = null;
     _pickedImages.clear();
@@ -337,149 +299,64 @@ class _CreatePostFormState extends State<CreatePostForm> {
     setState(() {});
   }
 
-  String _locationLabel({required double latitude, required double longitude}) {
-    return '${latitude.toStringAsFixed(6)}, ${longitude.toStringAsFixed(6)}';
-  }
+  // ── Upload limits ──────────────────────────────────────────────────────────
 
   Future<void> _loadUploadLimitsFromApi() async {
-    final PostUploadLimits? limits = await _createPostApiService
-        .fetchUploadLimits();
-    if (!mounted || limits == null) {
-      return;
-    }
+    final PostUploadLimits? limits =
+        await _createPostApiService.fetchUploadLimits();
+    if (!mounted || limits == null) return;
     _applyUploadLimits(limits);
   }
 
   bool _applyUploadLimitsFromApiError(ApiException error) {
     final Object? raw = error.rawError;
-    if (raw is! DioException) {
-      return false;
-    }
-    final PostUploadLimits? limits = _createPostApiService
-        .extractUploadLimitsFromDioError(raw);
-    if (limits == null) {
-      return false;
-    }
+    if (raw is! DioException) return false;
+    final PostUploadLimits? limits =
+        _createPostApiService.extractUploadLimitsFromDioError(raw);
+    if (limits == null) return false;
     return _applyUploadLimits(limits);
   }
 
   bool _applyUploadLimits(PostUploadLimits limits) {
-    int nextPerImageBytes = _maxImageSizeBytes;
-    int nextTotalBytes = _maxTotalImageUploadBytes;
-
-    final int? apiPerImage = limits.perImageBytes;
-    if (apiPerImage != null && apiPerImage > 0) {
-      nextPerImageBytes = apiPerImage;
-    }
-
-    final int? apiTotal = limits.totalBytes;
-    if (apiTotal != null && apiTotal > 0) {
-      nextTotalBytes = apiTotal;
-    }
-
-    if (nextTotalBytes < nextPerImageBytes) {
-      nextTotalBytes = nextPerImageBytes;
-    }
-
-    if (nextPerImageBytes == _maxImageSizeBytes &&
-        nextTotalBytes == _maxTotalImageUploadBytes) {
+    int nextPer = _maxImageSizeBytes;
+    int nextTotal = _maxTotalImageUploadBytes;
+    if ((limits.perImageBytes ?? 0) > 0) nextPer = limits.perImageBytes!;
+    if ((limits.totalBytes ?? 0) > 0) nextTotal = limits.totalBytes!;
+    if (nextTotal < nextPer) nextTotal = nextPer;
+    if (nextPer == _maxImageSizeBytes && nextTotal == _maxTotalImageUploadBytes)
       return false;
-    }
-
     setState(() {
-      _maxImageSizeBytes = nextPerImageBytes;
-      _maxTotalImageUploadBytes = nextTotalBytes;
+      _maxImageSizeBytes = nextPer;
+      _maxTotalImageUploadBytes = nextTotal;
     });
     return true;
   }
 
-  bool _applyFallback413Limits() {
-    final PostUploadLimits fallback = PostUploadLimits(
-      perImageBytes: _fallback413PerImageLimitMb * _bytesPerMb,
-      totalBytes: _fallback413TotalLimitMb * _bytesPerMb,
-    );
-    return _applyUploadLimits(fallback);
-  }
+  bool _applyFallback413Limits() => _applyUploadLimits(PostUploadLimits(
+        perImageBytes: _fallback413PerImageLimitMb * _bytesPerMb,
+        totalBytes: _fallback413TotalLimitMb * _bytesPerMb,
+      ));
 
   String _formatMbLabel(int bytes) {
-    final double value = bytes / _bytesPerMb;
-    final int rounded = value.round();
-    if ((value - rounded).abs() < 0.05) {
-      return rounded.toString();
-    }
-    return value.toStringAsFixed(1);
-  }
-
-  Future<Position?> _resolveRequiredLocation({
-    required bool openAppSettingsOnFailure,
-    required bool openLocationSettingsOnFailure,
-  }) async {
-    if (_isResolvingLocation) {
-      return null;
-    }
-
-    if (mounted) {
-      setState(() {
-        _isResolvingLocation = true;
-      });
-    }
-
-    try {
-      final PostLocationResult result =
-          await PostLocationRequirement.ensureCurrentPosition(
-            openAppSettingsOnDeniedForever: openAppSettingsOnFailure,
-            openLocationSettingsOnServicesDisabled:
-                openLocationSettingsOnFailure,
-          );
-
-      if (!mounted) {
-        return null;
-      }
-
-      final Position? position = result.position;
-      if (position == null) {
-        _clearCurrentLocation();
-        return null;
-      }
-
-      setState(() {
-        _locationController.text = _locationLabel(
-          latitude: position.latitude,
-          longitude: position.longitude,
-        );
-      });
-      return position;
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isResolvingLocation = false;
-        });
-      }
-    }
-  }
-
-  void _clearCurrentLocation() {
-    if (mounted) {
-      _locationController.clear();
-    }
+    final double v = bytes / _bytesPerMb;
+    final int r = v.round();
+    return (v - r).abs() < 0.05 ? r.toString() : v.toStringAsFixed(1);
   }
 
   String _normalizeDescription(String raw) {
-    final String trimmed = raw.trim();
-    if (trimmed.isEmpty) {
-      return '';
-    }
-    if (trimmed.startsWith('<')) {
-      return trimmed;
-    }
-    return '<p>${trimmed.replaceAll('\n', '<br>')}</p>';
+    final String t = raw.trim();
+    if (t.isEmpty) return '';
+    if (t.startsWith('<')) return t;
+    return '<p>${t.replaceAll('\n', '<br>')}</p>';
   }
 
-  void _showSnack(String message) {
+  void _showSnack(String msg) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
+      ..showSnackBar(SnackBar(content: Text(msg)));
   }
+
+  // ── Build ──────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -503,9 +380,10 @@ class _CreatePostFormState extends State<CreatePostForm> {
           padding: const EdgeInsets.all(15),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+            children: <Widget>[
+              // ── Images ───────────────────────────────────────────────
               Row(
-                children: [
+                children: <Widget>[
                   const AppFormSectionLabel(text: 'IMAGES'),
                   const Spacer(),
                   Text(
@@ -545,70 +423,64 @@ class _CreatePostFormState extends State<CreatePostForm> {
               ),
               Center(
                 child: Text(
-                  'JPEG, PNG, WebP — max $_maxImageSizeMbLabel MB each ($_maxTotalImageUploadMbLabel MB total)',
+                  'JPEG, PNG, WebP — max $_maxImageSizeMbLabel MB each '
+                  '($_maxTotalImageUploadMbLabel MB total)',
                   style: const TextStyle(
-                    color: Color(0xFF9AA0B8),
-                    fontSize: 12,
-                  ),
+                      color: Color(0xFF9AA0B8), fontSize: 12),
                 ),
               ),
-              if (_pickedImages.isNotEmpty) ...[
+              if (_pickedImages.isNotEmpty) ...<Widget>[
                 const SizedBox(height: 12),
                 _buildImagePreviewStrip(),
               ],
               const SizedBox(height: 10),
-              if (_resolvedCategoryId == null) ...[
+
+              // ── Category warning ──────────────────────────────────────
+              if (_resolvedCategoryId == null)
                 Container(
                   margin: const EdgeInsets.only(bottom: 14),
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 10,
-                  ),
+                      horizontal: 12, vertical: 10),
                   decoration: BoxDecoration(
                     color: const Color(0xFFFFF1F1),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: const Color(0xFFF2CBCB)),
                   ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.warning_amber_rounded,
-                        color: AppColors.error,
-                        size: 18,
-                      ),
-                      const SizedBox(width: 8),
+                  child: const Row(
+                    children: <Widget>[
+                      Icon(Icons.warning_amber_rounded,
+                          color: AppColors.error, size: 18),
+                      SizedBox(width: 8),
                       Expanded(
-                        child: const Text(
-                          'Missing selected category. Go back and choose a category first.',
+                        child: Text(
+                          'Missing category. Go back and choose one first.',
                           style: TextStyle(
-                            color: AppColors.error,
-                            fontWeight: FontWeight.w600,
-                          ),
+                              color: AppColors.error,
+                              fontWeight: FontWeight.w600),
                         ),
                       ),
                     ],
                   ),
                 ),
-              ],
+
+              // ── Title ────────────────────────────────────────────────
               const AppFormSectionLabel(text: 'TITLE'),
               TextFormField(
                 controller: _titleController,
                 enabled: !_isBusy,
-                decoration: _fieldDecoration(
-                  hintText: 'e.g. iPhone 14 Pro Max',
-                ),
-                validator: (value) {
-                  final String text = value?.trim() ?? '';
-                  if (text.isEmpty) {
-                    return 'Title is required';
-                  }
-                  return null;
-                },
+                decoration:
+                    _fieldDecoration(hintText: 'e.g. iPhone 14 Pro Max'),
+                validator: (v) =>
+                    (v?.trim() ?? '').isEmpty ? 'Title is required' : null,
               ),
               const SizedBox(height: 10),
+
+              // ── Description ───────────────────────────────────────────
               const AppFormSectionLabel(text: 'DESCRIPTION'),
               _buildDescriptionField(isBusy: _isBusy),
               const SizedBox(height: 8),
+
+              // ── Price + Status ────────────────────────────────────────
               AppTwoColumnFormRow(
                 gap: 10,
                 left: AppLabeledFormField(
@@ -617,25 +489,21 @@ class _CreatePostFormState extends State<CreatePostForm> {
                     controller: _priceController,
                     enabled: !_isBusy,
                     keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                      signed: false,
-                    ),
+                        decimal: true),
                     inputFormatters: <TextInputFormatter>[
                       PriceInputUtils.decimalFormatter,
                     ],
                     decoration: _fieldDecoration(
                       hintText: '0.00',
                       contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 4,
-                      ),
+                          horizontal: 14, vertical: 4),
                     ),
-                    validator: (value) =>
+                    validator: (v) =>
                         PriceInputUtils.validatePositiveRequired(
-                          value,
-                          requiredMessage: 'Price is required',
-                          invalidMessage: 'Price must be greater than 0',
-                        ),
+                      v,
+                      requiredMessage: 'Price is required',
+                      invalidMessage: 'Price must be greater than 0',
+                    ),
                   ),
                 ),
                 right: AppLabeledFormField(
@@ -646,18 +514,16 @@ class _CreatePostFormState extends State<CreatePostForm> {
                     items: _statusDropdownItems,
                     onChanged: _isBusy
                         ? null
-                        : (value) {
-                            if (value == null) {
-                              return;
-                            }
-                            setState(() {
-                              _selectedStatus = value;
-                            });
+                        : (v) {
+                            if (v == null) return;
+                            setState(() => _selectedStatus = v);
                           },
                   ),
                 ),
               ),
               const SizedBox(height: 14),
+
+              // ── Condition ─────────────────────────────────────────────
               AppLabeledFormField(
                 label: 'CONDITION',
                 child: _buildDropdownField<String>(
@@ -666,43 +532,62 @@ class _CreatePostFormState extends State<CreatePostForm> {
                   items: _conditionDropdownItems,
                   onChanged: _isBusy
                       ? null
-                      : (value) => setState(() => _selectedCondition = value),
+                      : (v) => setState(() => _selectedCondition = v),
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 18),
+
+              // ── Location card ─────────────────────────────────────────
+              const AppFormSectionLabel(text: 'LOCATION'),
+              LocationPickerCard(
+                enabled: !_isBusy,
+                latitude: _pickedLatitude,
+                longitude: _pickedLongitude,
+                address: _pickedAddress,
+                city: _pickedCity,
+                onLocationPicked: _onLocationPicked,
+              ),
+              if (_locationTouched && !_hasLocation)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6, left: 4),
+                  child: Text(
+                    'Please set a location on the map',
+                    style: TextStyle(
+                        color: AppColors.error, fontSize: 12),
+                  ),
+                ),
+              const SizedBox(height: 24),
+
+              // ── Buttons ───────────────────────────────────────────────
               Row(
-                children: [
+                children: <Widget>[
                   Expanded(
                     child: ElevatedButton(
                       onPressed: _isBusy ? null : _submit,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _accentColor,
                         foregroundColor: Colors.white,
-                        disabledBackgroundColor: _accentColor.withValues(
-                          alpha: 0.45,
-                        ),
+                        disabledBackgroundColor:
+                            _accentColor.withValues(alpha: 0.45),
                         elevation: 0,
                         shadowColor: Colors.transparent,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 15),
+                            borderRadius: BorderRadius.circular(16)),
+                        padding:
+                            const EdgeInsets.symmetric(vertical: 15),
                       ),
                       child: _isSaving
                           ? const SizedBox(
                               width: 16,
                               height: 16,
                               child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
+                                  strokeWidth: 2, color: Colors.white),
                             )
                           : const Text(
                               'Create Post',
                               style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                              ),
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700),
                             ),
                     ),
                   ),
@@ -724,16 +609,14 @@ class _CreatePostFormState extends State<CreatePostForm> {
                         side: const BorderSide(color: _fieldBorderColor),
                         backgroundColor: const Color(0xFFF0F1F8),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 15),
+                            borderRadius: BorderRadius.circular(16)),
+                        padding:
+                            const EdgeInsets.symmetric(vertical: 15),
                       ),
                       child: const Text(
                         'Cancel',
                         style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
+                            fontSize: 16, fontWeight: FontWeight.w600),
                       ),
                     ),
                   ),
@@ -753,17 +636,15 @@ class _CreatePostFormState extends State<CreatePostForm> {
         scrollDirection: Axis.horizontal,
         itemCount: _pickedImages.length,
         separatorBuilder: (_, _) => const SizedBox(width: 10),
-        itemBuilder: (context, index) {
-          final XFile image = _pickedImages[index];
-          return _buildImageThumbnail(image: image, index: index);
-        },
+        itemBuilder: (context, index) =>
+            _buildImageThumbnail(image: _pickedImages[index], index: index),
       ),
     );
   }
 
   Widget _buildImageThumbnail({required XFile image, required int index}) {
     return Stack(
-      children: [
+      children: <Widget>[
         ClipRRect(
           borderRadius: BorderRadius.circular(12),
           child: Container(
@@ -779,7 +660,7 @@ class _CreatePostFormState extends State<CreatePostForm> {
               width: 82,
               height: 82,
               fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) =>
+              errorBuilder: (_, __, ___) =>
                   const Icon(Icons.image_not_supported_outlined),
             ),
           ),
@@ -790,18 +671,13 @@ class _CreatePostFormState extends State<CreatePostForm> {
           child: GestureDetector(
             onTap: _isBusy
                 ? null
-                : () {
-                    setState(() {
-                      _pickedImages.removeAt(index);
-                    });
-                  },
+                : () => setState(() => _pickedImages.removeAt(index)),
             child: Container(
               decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.black54,
-              ),
+                  shape: BoxShape.circle, color: Colors.black54),
               padding: const EdgeInsets.all(3),
-              child: const Icon(Icons.close, size: 12, color: Colors.white),
+              child:
+                  const Icon(Icons.close, size: 12, color: Colors.white),
             ),
           ),
         ),
@@ -819,13 +695,8 @@ class _CreatePostFormState extends State<CreatePostForm> {
         hintText: 'Describe your product',
         contentPadding: const EdgeInsets.all(10),
       ),
-      validator: (value) {
-        final String text = value?.trim() ?? '';
-        if (text.isEmpty) {
-          return 'Description is required';
-        }
-        return null;
-      },
+      validator: (v) =>
+          (v?.trim() ?? '').isEmpty ? 'Description is required' : null,
     );
   }
 
@@ -840,8 +711,7 @@ class _CreatePostFormState extends State<CreatePostForm> {
       filled: true,
       fillColor: Colors.white,
       hintStyle: const TextStyle(color: _fieldHintColor, fontSize: 15),
-      contentPadding:
-          contentPadding ??
+      contentPadding: contentPadding ??
           const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
@@ -876,22 +746,22 @@ class _CreatePostFormState extends State<CreatePostForm> {
     return DropdownButtonFormField<T>(
       initialValue: value,
       isExpanded: true,
-      icon: const Icon(
-        Icons.keyboard_arrow_down_rounded,
-        color: Color(0xFF7E86A4),
-      ),
+      icon: const Icon(Icons.keyboard_arrow_down_rounded,
+          color: Color(0xFF7E86A4)),
       decoration: _fieldDecoration(
         hintText: hintText,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-      ).copyWith(fillColor: isEnabled ? Colors.white : const Color(0xFFF2F4FA)),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+      ).copyWith(
+        fillColor: isEnabled ? Colors.white : const Color(0xFFF2F4FA),
+      ),
       borderRadius: BorderRadius.circular(14),
       dropdownColor: Colors.white,
       hint: Text(hintText, style: const TextStyle(color: _fieldHintColor)),
       style: const TextStyle(
-        color: Color(0xFF303854),
-        fontSize: 16,
-        fontWeight: FontWeight.w500,
-      ),
+          color: Color(0xFF303854),
+          fontSize: 16,
+          fontWeight: FontWeight.w500),
       items: items,
       onChanged: onChanged,
     );
